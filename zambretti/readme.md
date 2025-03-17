@@ -303,7 +303,7 @@ In the end this Zambretti integration provides you with a set of forecasts (gene
 - Provides an estimated **percentage chance of fog**.
 
 ## 6. Alert
-- Determines **storm risk** based on pressure trends, temperature shifts, and wind speed. Alert levels range from **0 (fine weather) to 5 (severe storm warning)**:
+Determines **storm risk** based on pressure trends, temperature shifts, and wind speed. Alert levels range from **0 (fine weather) to 5 (severe storm warning)**:
 
 | alert_level | Alert |
 | ----------- | ----- |
