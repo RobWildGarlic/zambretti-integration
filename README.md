@@ -67,14 +67,27 @@ It uses the recorded history of sensors. So **make sure the required sensors are
 You decide the update frequency of the Zambretti weather forecast in de integration configuration. Apart from debugging it is utterly useless to update very minute (unnecessarly burdens Home Assistant) but anything from 15 to 60 minutes is appropriate.
 
 # Install
-## Install via HACS  (not yet possible!)
-  - Add my repository to HACS
-  - Add this custom integration via **HACS (Home Assistant Community Store)**.
-  - Restart Home Assistant.
+## Install via HACS
+1. Add my repository to **HACS (Home Assistant Community Store)**:
+    - in HACS click on the three dots
+    - choose `Custom repositories`
+    - copy-paste
+      `https://github.com/RobWildGarlic/zambretti-integration`
+    - select `Integration` for type
+2. Zambretti Weather Forecast is now in your HACS list
+    - find it, click it and download it
+    - restart Home Assistant
+2. Add the integration to your Home Assistant thus:
+    - go to `Settings` - `Devices & services`
+    - click `+ ADD INTEGRATION`
+    - find Zambretti Weather Forecast and install it
+
+You are ready to configure.
 
 ## Install Manually
   - Copy the **Zambretti** directory to your **config/custom_components** directory
   - Restart Home Assistant.
+  - Add integration in Settings
 
 ## Configure Sensors
 You will need a proper true wind direction sensor. If you are on a boat or an RV you might not have it. Read the next chapter on what to do. Same goes for sensors that don't provide in Knots, °C or hPa.
