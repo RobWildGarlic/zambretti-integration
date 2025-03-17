@@ -1,0 +1,12 @@
+{
+    "domain": "zambretti",
+    "name": "Zambretti Weather Forecast",
+    "version": "1.0.0",
+    "config_flow": true,
+    "documentation": "https://columbusgoes.digital/zambretti/index.html",
+    "dependencies": [],
+    "codeowners": ["@RobWildGarlic"],
+    "requirements": [],
+    "iot_class": "local_polling",
+    "logo": "icon.png"
+}
