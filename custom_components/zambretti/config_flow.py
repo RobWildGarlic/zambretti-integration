@@ -18,28 +18,25 @@ class ZambrettiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # ✅ Define schema with clear field names and suggested values
         schema = vol.Schema({
-            vol.Required("wind_direction_sensor", description={"suggested_value": "sensor.wind_direction (360°)"}): selector.EntitySelector(
+            vol.Required("wind_direction_sensor", description={"suggested_value": "Sensor for wind direction (360°)"}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Required("wind_speed_sensor_knots", description={"suggested_value": "sensor.wind_speed (knots)"}): selector.EntitySelector(
+            vol.Required("wind_speed_sensor_knots", description={"suggested_value": "Sensor for wind speed (knots)"}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Required("atmospheric_pressure_sensor", description={"suggested_value": "sensor.outside_pressure (hPa)"}): selector.EntitySelector(
+            vol.Required("atmospheric_pressure_sensor", description={"suggested_value": "=Sensor for outside pressure (hPa)"}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Required("temperature_sensor", description={"suggested_value": "sensor.outside_temperature (°C)"}): selector.EntitySelector(
+            vol.Required("temperature_sensor", description={"suggested_value": "Sensor for outside temperature (°C)"}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Required("humidity_sensor", description={"suggested_value": "sensor.outside_humidity (%)"}): selector.EntitySelector(
+            vol.Required("humidity_sensor", description={"suggested_value": "Sensor for outside humidity (%)"}): selector.EntitySelector(
                 selector.EntitySelectorConfig(domain="sensor")
             ),
-            vol.Required("gps_location_latitude", description={"suggested_value": "sensor.gps_latitude"}): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required("gps_location_longitude", description={"suggested_value": "sensor.gps_longitude"}): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="sensor")
-            ),
-            vol.Required("update_interval_minutes", default="10"): selector.SelectSelector(
+			vol.Required("device_tracker_home",  description={"suggested_value": "Device tracker for your location (usually home location)"}): selector.EntitySelector(
+			    selector.EntitySelectorConfig(domain="device_tracker")
+			),
+       		vol.Required("update_interval_minutes", default="10"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=["1", "5", "10", "15", "20", "30", "60"],
                     mode=selector.SelectSelectorMode.DROPDOWN

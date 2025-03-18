@@ -37,14 +37,10 @@ class ZambrettiOptionsFlowHandler(config_entries.OptionsFlow):
                 selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor")
                 ),
-            vol.Required("gps_location_latitude", default=self.config_entry.options.get("gps_location_latitude", self.config_entry.data.get("gps_location_latitude", ""))): 
+			vol.Required("device_tracker_home",  default=self.config_entry.options.get("device_tracker_home", self.config_entry.data.get("device_tracker_home", ""))):
                 selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
-            vol.Required("gps_location_longitude", default=self.config_entry.options.get("gps_location_longitude", self.config_entry.data.get("gps_location_longitude", ""))): 
-                selector.EntitySelector(
-                    selector.EntitySelectorConfig(domain="sensor")
-                ),
+			        selector.EntitySelectorConfig(domain="device_tracker")
+			    ),
             vol.Required("update_interval_minutes", default=self.config_entry.options.get("update_interval_minutes", self.config_entry.data.get("update_interval_minutes",5))): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=["1", "5", "10", "15", "20", "30", "60"],
