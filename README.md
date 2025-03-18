@@ -1,4 +1,5 @@
 
+
 # Zambretti Weather Forecast Integration
   - [Before we get going](#before-we-get-going)
   - [Overview](#overview)
@@ -99,12 +100,12 @@ You will need a proper true wind direction sensor. If you are on a boat or an RV
   - Atmospheric Pressure in hPa
   - Temperature (°C)
   - Humidity (%)
-  - Latitude & Longitude of your location
+  - Tracker for you home location
 
 - You can fine tune Zambretti with the following parameters:
   - Update interval (minutes). Don't make it too short as it will unnecesarily burden your Home Assistant without adding value.
   - Pressure history (in hours) to use for pressure analysis (1 to 12h)
-  - Fog area type. Different areas have different likelyhood of fog. Adjust here to adjust the chance of fog.
+  - Fog area type. Different areas have different likelyhood of fog. Adjust here to adjust the chance of fog in your area.
 
 The Zambretti integration uses the sensors above and the settings to make a forecast. You can change these at any time. Click (`CONFIGURE`) for the `Options` dialog and make your changes. Then `reload` the integration (three-dot menu). This is good way to experiment with the pressure history settings and immediately see the results.
 
@@ -161,12 +162,6 @@ For wind direction, wind speed and compass heading I use the appropriate integra
 # Using the integration
 ## Wait for Zambretti to have started up
 The Zambretti integration needs all it's sensors to be on-line before it does anything. On some sensors that may take a while. That means using Zambretti sensor data *may* cause errors while starting up Home Assistant - all attributes are 'Unknown'. To that end Zambretti has the attribute `fully_started`. Only if that is `true` can you rely on the sensor data. As an example below the first line for the Markdown card caters for that. It also means that you would be wise to use that attribute in an automation in the `And if (optional)` section to stop the automation from running if Zambretti is not ready yet.
-
-## Multiple Forecast Entities
-You can have multiple forecasts (`Integration entries`), using different configurations. Just click `ADD ENTRY` in the `Zambretti Weather Forecast` entity overview. It is wise to immediately change the name of the new forecast (3 dot menu) and of the entity (both `Name` and `Entity_id`).
-![enter image description here](https://columbusgoes.digital/zambretti/example3.png)
-This can be useful, for instance, for having forecasts based on 3hr, 6hr and 12hr pressure history. To see what works best for you or to get a better picture. It might be wise to set `update_interval_minutes` to 60 minutes for the 6hr and 12hr forecasts to go easy on Home Assistant.
-
 ## Example for your dashboard
 There is a lot available but I like to present it in a **Markdown card**. That way I have the Zambretti forecast with the wind system, fog chance and temperature warning all in one card. 
 ![enter image description here](https://columbusgoes.digital/zambretti/example1.png)
@@ -194,7 +189,13 @@ The content for the Markdown card:
 ```
 Add a `Markdown` card, copy and paste the above into that and Bob's your uncle.
 
-If you use multiple forecast entities you could add a second forecast by adding (use your own forecast name):
+
+## Multiple Forecast Entities
+You can have multiple forecasts (`Integration entries`), using different configurations. Just click `ADD ENTRY` in the `Zambretti Weather Forecast` entity overview. It is wise to immediately change the name of the new forecast (3 dot menu) and of the entity (both `Name` and `Entity_id`).
+![enter image description here](https://columbusgoes.digital/zambretti/example3.png)
+This can be useful, for instance, for having forecasts based on 3hr, 6hr and 12hr pressure history. To see what works best for you or to get a better picture. It might be wise to set `update_interval_minutes` to 60 minutes for the 6hr and 12hr forecasts to go easy on Home Assistant.
+
+To display multiple forecasts add a second etc. forecast by adding (use your own forecast name):
 ```jinja2
 <b>Based on {{state_attr('sensor.zambretti_forecast_6hr','cfg_pressure_history_hours') }}hr atmospheric pressure:</b>
 
@@ -308,6 +309,7 @@ In the end this Zambretti integration provides you with a set of forecasts (gene
 - If the temperature drops sharply in the evening or rises quickly in the morning, adjustments are made to account for **natural sunrise/sunset effects**.
 
 ## 5. Fog Chance
+- **Fog chance cannot be forecast in the longer term using local sensors, so fog chance is the chance of fog right now.**
 - Calculates **fog probability** based on:
   - **Humidity** – Higher humidity increases fog risk.
   - **Temperature & Dewpoint** – The closer they are, the higher the fog likelihood.

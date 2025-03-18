@@ -41,6 +41,8 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
             return "learning", safe_float(current_state.state), 0
         return "steady", 0, 0  # No data at all, return steady trend
 
+    _LOGGER.debug(f"History array: {history_data}")
+
     # Ensure data is sorted in time order (oldest → newest)
     data_points = sorted(history_data[entity_id], key=lambda state: state.last_changed)
 
@@ -67,6 +69,9 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
         return "learning", pressure_values[0], 1
     
     _LOGGER.debug(f"DPT: pressure values {len(pressure_values)}")
+    _LOGGER.debug(f"Pressure values array: {pressure_values}")
+    _LOGGER.debug(f"Timestamp array: {timestamps}")
+
 
     # **Straight-Line Method (Linear Regression)**
     x = np.array(timestamps) - timestamps[0]  # Convert timestamps to relative time
@@ -105,6 +110,8 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
 
         slope = slope_to_min if abs(slope_to_min) > abs(slope_to_max) else slope_to_max
     else:
+        _LOGGER.debug(f"DPT2: Straight-line slope: {slope}, Avg deviation: {avg_deviation}")
+
         # **Use Straight-Line Slope as Trend**
         method_used = "Straight-line"
         # Convert slope to hPa per hour
@@ -124,6 +131,15 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
     else:
         trend = "plummeting"        
 
+    # Create the pressure forecast
+    d_trend = trend.replace("_", " ").title()
+    plus_minus = "±"
+    if round(slope, 1) > 0:
+        plus_minus = "+"
+    elif round(slope, 2) < 0:
+        plus_minus = "-"
+    
+    analysis = f"{d_trend} pressure, {plus_minus}{abs(round(slope,1))}/hr"
 
-    return trend, slope, len(history_data[entity_id]), method_used, avg_deviation     
+    return trend, slope, analysis, len(history_data[entity_id]), method_used, avg_deviation     
  

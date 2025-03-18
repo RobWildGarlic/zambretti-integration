@@ -141,6 +141,7 @@ class Zambretti(SensorEntity):
             # ⬇️ Atmospheric Pressure
             "pressure_trend": None,
             "pressure_move_per_hour": None,
+            "pressure analysis": None,
             "method_used": None,
             "method_deviation": None,
             
@@ -210,6 +211,8 @@ class Zambretti(SensorEntity):
             self.wind_speed_sensor_knots,
         ]
         # if not all required sensors are available yet then try again later
+        latitude_state = self.hass.states.get(self.gps_location_latitude)
+        longitude_state = self.hass.states.get(self.gps_location_longitude)
         if not self.sensors_valid(required_sensors):
             _LOGGER.debug("⚠️ Required sensors not yet available. Scheduling re-check in 10 seconds.")
             self.counter += 1
@@ -265,19 +268,44 @@ class Zambretti(SensorEntity):
         humidity = safe_float(humidity_state.state)
         temperature = safe_float(temperature_state.state)
         pressure_history_hours = int(safe_float(self.pressure_history_hours))
+ 
+        # -------------------------------
+        # -------------------------------
+        # PREP DONE, LET'S GET GOING CREATING THE FORECAST
+        # -------------------------------
+        # -------------------------------
+        
+        # -------------------------------
+        # Retrieve GPS Location
+        # -------------------------------
+        latitude = safe_float(latitude_state.state)
+        longitude = safe_float(longitude_state.state)
+        _LOGGER.debug(f"ℹ️ GPS location established: {latitude}, {longitude}")
+
+        # -------------------------------
+        # Determine Region
+        # -------------------------------
+        region, region_name, region_url = determine_region(latitude, longitude)
+        self._attributes.update({
+            "region": region_name,
+            "region_url": region_url,
+        })
+
 
         # -------------------------------
         # Analyze Atmospheric Pressure
         # -------------------------------
-        trend, slope, hist_pressure, method_used, method_deviation = await \
+        trend, slope, p_analysis, hist_pressure, method_used, method_deviation = await \
             determine_pressure_trend(
                 self.hass,
                 self.atmospheric_pressure_sensor,
                 self.pressure_history_hours
             )
+        _LOGGER.debug(f"SENSOR: Straight-line slope: {slope}, Avg deviation: {method_deviation}")    
         self._attributes.update({
             "pressure_trend": trend,
             "pressure_move_per_hour": slope,
+            "pressure analysis": p_analysis,
             "hist_pressure": hist_pressure,
             "method_deviation": method_deviation,
             "method_used": method_used,
@@ -319,13 +347,6 @@ class Zambretti(SensorEntity):
             "wind_direction_change": wind_direction_change,
         })
         _LOGGER.debug(f"ℹ️ Wind direction change analyzed: {wind_direction_change}")
-
-        # -------------------------------
-        # Retrieve GPS Location
-        # -------------------------------
-        latitude = safe_float(latitude_state.state)
-        longitude = safe_float(longitude_state.state)
-        _LOGGER.debug(f"ℹ️ GPS location established: {latitude}, {longitude}")
 
         # -------------------------------
         # Analyze Temperature Trends
@@ -379,7 +400,7 @@ class Zambretti(SensorEntity):
         # We now have everythong to make up a full forecast
         estimated_wind_speeds = f"{int(safe_float(estimated_wind_speed)*0.8)}-{int(safe_float(estimated_wind_speed)*1.2)}"
         wind_forecast = f"Wind estimate {estimated_wind_speeds}kn, {wind_direction_change}"
-        full_forecast = f"{forecast} {wind_forecast}. {fog_chance}. {temp_effect}."
+        full_forecast = f"{p_analysis}. {forecast}. {wind_forecast}. {fog_chance} right now. {temp_effect}."
         
         self._state = full_forecast
         self._attributes.update({
@@ -389,20 +410,11 @@ class Zambretti(SensorEntity):
         })
 
         # -------------------------------
-        # Determine Region
-        # -------------------------------
-        region, region_url = determine_region(latitude, longitude)
-        region_name = region.replace("_", " ").title()
-        self._attributes.update({
-            "region": region_name,
-            "region_url": region_url,
-        })
-
-        # -------------------------------
         # Generate Wind System Data
         # -------------------------------
         wind_system, system_urls = wind_systems(
             region,
+            region_name,
             region_url,
             latitude,
             longitude,

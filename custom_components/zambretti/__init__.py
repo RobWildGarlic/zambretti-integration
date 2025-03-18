@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.ERROR)  # Or use logging.INFO for less verbosity
+_LOGGER.setLevel(logging.CRITICAL)  # Or use logging.INFO for less verbosity
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""

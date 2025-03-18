@@ -12,10 +12,10 @@ REGIONS = {
     "western_europe_coast": (35, 50, -10, 5, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Meteo France
     #Large regions
     "north_sea_baltic": (50, 65, -5, 30, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Danish Meteorological Institute (DMI)
-    "mediterranean_northwest": (38, 48, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Spain, France, Ligurian Coast
-    "mediterranean_southwest": (30, 38, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Balearics, Algeria, Tunisia, Western Italy
-    "mediterranean_northeast": (38, 48, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Adriatic, Greece, Balkans, Turkey
-    "mediterranean_southeast": (30, 38, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Levant, Cyprus, Egypt, Crete
+    "mediterranean_NW": (38, 48, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Spain, France, Ligurian Coast
+    "mediterranean_SW": (30, 38, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Balearics, Algeria, Tunisia, Western Italy
+    "mediterranean_NE": (38, 48, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Adriatic, Greece, Balkans, Turkey
+    "mediterranean_SE": (30, 38, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Levant, Cyprus, Egypt, Crete
     "caribbean": (5, 30, -100, -50, "https://en.wikipedia.org/wiki/List_of_local_winds#Caribbean"),  # National Hurricane Center (NOAA)
     "american_east_coast": (25, 50, -85, -60, "https://en.wikipedia.org/wiki/List_of_local_winds#North_America"),  # US National Weather Service
     # Very large regions
@@ -23,7 +23,7 @@ REGIONS = {
 }
 # 🔄 Wind Direction Mapping (region-based)
 WIND_SYSTEM_INDEX = {
-    "mediterranean_northwest": {
+    "mediterranean_NW": {
         "N": ["Tramontane", "Mistral"],
         "N-NW": ["Tramontane"],
         "NW": ["Mistral"],
@@ -41,7 +41,7 @@ WIND_SYSTEM_INDEX = {
         "NE": ["Gregale"],
         "N-NE": ["Tramontane"],
     },
-    "mediterranean_southwest": {
+    "mediterranean_SW": {
         "N": ["Mistral"],
         "N-NW": ["Tramontane"],
         "NW": ["Mistral"],
@@ -58,7 +58,7 @@ WIND_SYSTEM_INDEX = {
         "NE": ["Gregale"],
         "N-NE": ["Tramontane"],
     },
-    "mediterranean_northeast": {
+    "mediterranean_NE": {
         "N": ["Bora", "Meltemi"],
         "N-NW": ["Bora", "Meltemi"],
         "NW": ["Meltemi"],
@@ -76,7 +76,7 @@ WIND_SYSTEM_INDEX = {
         "NE": ["Bora", "Meltemi"],
         "N-NE": ["Bora", "Meltemi"],
     },
-    "mediterranean_southeast": {
+    "mediterranean_SE": {
         "N": ["Meltemi"],
         "N-NW": ["Meltemi"],
         "NW": ["Meltemi"],
@@ -285,7 +285,7 @@ WIND_SYSTEM_CATALOG = {
 
 # 🌍 Default descriptions for wind directions per region
 REGION_CATALOG = {
-    "mediterranean_northwest": {
+    "mediterranean_NW": {
         "N": "Northern winds: Cold air from Europe, often strong, affecting France and Northern Spain.",
         "N-NW": "North-Northwest winds: Strong and dry, influenced by Tramontane and Mistral.",
         "NW": "Northwest winds: Mistral-dominated, bringing cold, dry air and clear skies.",
@@ -303,7 +303,7 @@ REGION_CATALOG = {
         "NE": "Northeasterly winds: Can be strong, impacting the Western Italian coast.",
         "N-NE": "North-Northeast winds: Gusty and cold, weaker than in the eastern Mediterranean.",
     },
-    "mediterranean_southwest": {
+    "mediterranean_SW": {
         "N": "Northern winds: Often mild but can bring cooler air into Algeria and Tunisia.",
         "N-NW": "North-Northwest winds: Strong and dry, influenced by the Mistral and Tramontane.",
         "NW": "Northwest winds: Dry, sometimes dusty, affecting the Balearic Islands.",
@@ -321,7 +321,7 @@ REGION_CATALOG = {
         "NE": "Northeasterly winds: Moderate winds affecting North Africa and Malta.",
         "N-NE": "North-Northeast winds: Occasionally strong, bringing cooler air inland.",
     },
-    "mediterranean_northeast": {
+    "mediterranean_NE": {
         "N": "Northern winds: Cold, strong gusts, impacting Greece and the Balkans.",
         "N-NW": "North-Northwest winds: Strong and dry, affecting the Adriatic and Aegean Seas.",
         "NW": "Northwest winds: Cool air, often linked to Bora and Meltemi, impacting Greece and Turkey.",
@@ -339,7 +339,7 @@ REGION_CATALOG = {
         "NE": "Northeasterly winds: Associated with Gregale and Bora, bringing dry, cold air to the Adriatic.",
         "N-NE": "North-Northeast winds: Strong and gusty, associated with Bora and Meltemi.",
     },
-    "mediterranean_southeast": {
+    "mediterranean_SE": {
         "N": "Northern winds: Often mild, but can bring cool air from Turkey.",
         "N-NW": "North-Northwest winds: Can be strong, affecting the Levant and Egypt.",
         "NW": "Northwest winds: Dry air, occasionally stormy, impacting Cyprus and Crete.",
@@ -454,27 +454,30 @@ def determine_region(lat, lon):
     # A set of coordinates (lat,lon) might land in multiple regions. The REGIONS dictionary
     # is order from small regions to large regions and this function picks the first one.
     # So 'british isles' is picked, not 'north_atlantic' (british_isles are in the north_atlantic).
+
     for region, values in REGIONS.items():
         lat_min, lat_max, lon_min, lon_max, url = values  # ✅ Correct unpacking
         if lat_min <= lat <= lat_max and lon_min <= lon <= lon_max:
+            region_name = region.replace("_", " ")
+            if region_name:
+                region_name = region_name[0].upper() + region_name[1:]
             _LOGGER.debug(f"✅ Location ({lat}, {lon}) identified as {region}, url {url}.")
-            return region, url
-    return "unknown", "none"
+            return region, region_name, url
+    _LOGGER.debug(f"✅ Location ({lat}, {lon}) no region.")
+    return "unknown", "unknown", "none"
 
-def wind_systems(region, region_url, latitude, longitude, wind_direction, wind_speed):
+def wind_systems(region, region_name, region_url, latitude, longitude, wind_direction, wind_speed):
     """Determine the most relevant wind system based on region, wind direction, and location."""
     
     _LOGGER.debug(f"WIND_SYSTEMS: {region}  {region_url}")
     default_description = REGION_CATALOG.get(region, {}).get(wind_direction, "No wind description available.")
-
-    region_name = region.replace("_", " ").title() 
     default_url = f'<a href="{region_url}">{region_name}</a>'
     _LOGGER.debug(f"WIND_SYSTEMS: {default_url}")
     
     # ✅ Step 1: Handle low wind speeds
-    if safe_float(wind_speed) < 5:
+    if safe_float(wind_speed) < 3:
         _LOGGER.debug("Wind speed < 5, so default description applies.")
-        return f"No wind, so {default_description}", default_url
+        return default_description, default_url
 
     wind_systems_for_region = []
     # ✅ Step 2: Get possible wind systems based on wind direction
