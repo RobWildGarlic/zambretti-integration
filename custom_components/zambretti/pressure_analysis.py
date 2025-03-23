@@ -7,7 +7,7 @@ from .helpers import safe_float
 
 import logging
 _LOGGER = logging.getLogger(__name__)
-_LOGGER.setLevel(logging.DEBUG)  # Or use logging.INFO for less verbosity
+#_LOGGER.setLevel(logging.DEBUG)  # Or use logging.INFO for less verbosity
 
 
 async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
@@ -37,9 +37,7 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
     if not history_data or entity_id not in history_data:
         _LOGGER.debug(f"⚠️ No history data available for {entity_id}. Using current state instead.")
         current_state = hass.states.get(entity_id)
-        if current_state:
-            return "learning", safe_float(current_state.state), 0
-        return "steady", 0, 0  # No data at all, return steady trend
+        return "learning", "", "", 0, "", 0  # No data at all, return steady trend
 
     _LOGGER.debug(f"History array: {history_data}")
 
@@ -66,7 +64,7 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
             break
 
     if len(pressure_values) < 2:
-        return "learning", pressure_values[0], 1
+        return "learning", "", "", 0, "", 0  # No data at all, return steady trend
     
     _LOGGER.debug(f"DPT: pressure values {len(pressure_values)}")
     _LOGGER.debug(f"Pressure values array: {pressure_values}")

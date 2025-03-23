@@ -5,7 +5,7 @@
   - [Overview](#overview)
   - [How It Works](#how-it-works)
 - [Install](#install)
-  - [Install via HACS  (not yet possible!)](#install-via-hacs-not-yet-possible)
+  - [Install via HACS](#install-via-hacs)
   - [Install Manually](#install-manually)
   - [Configure Sensors](#configure-sensors)
   - [Create your own wind direction sensor](#create-your-own-wind-direction-sensor)
@@ -100,7 +100,7 @@ You will need a proper true wind direction sensor. If you are on a boat or an RV
   - Atmospheric Pressure in hPa
   - Temperature (°C)
   - Humidity (%)
-  - Tracker for you home location
+  - Tracker for your home location
 
 - You can fine tune Zambretti with the following parameters:
   - Update interval (minutes). Don't make it too short as it will unnecesarily burden your Home Assistant without adding value.
@@ -164,16 +164,18 @@ For wind direction, wind speed and compass heading I use the appropriate integra
 The Zambretti integration needs all it's sensors to be on-line before it does anything. On some sensors that may take a while. That means using Zambretti sensor data *may* cause errors while starting up Home Assistant - all attributes are 'Unknown'. To that end Zambretti has the attribute `fully_started`. Only if that is `true` can you rely on the sensor data. As an example below the first line for the Markdown card caters for that. It also means that you would be wise to use that attribute in an automation in the `And if (optional)` section to stop the automation from running if Zambretti is not ready yet.
 ## Example for your dashboard
 There is a lot available but I like to present it in a **Markdown card**. That way I have the Zambretti forecast with the wind system, fog chance and temperature warning all in one card. 
-![enter image description here](https://columbusgoes.digital/zambretti/example1.png)
+
+<img src="https://columbusgoes.digital/zambretti/example1.png" alt="example1" width="50%"/>
+
 The content for the Markdown card:
 
 ```jinja2
-{% if state_attr('sensor.zambretti_forecast','fully_started') %}<h3><ha-icon icon={{ state_attr('sensor.zambretti_forecast','icon') }}></ha-icon> Zambretti {{ state_attr('sensor.zambretti_forecast','region') }} local 12h forecast</h3>
+{% if state_attr('sensor.zambretti_forecast','fully_started') %}<h3><ha-icon icon={{ state_attr('sensor.zambretti_forecast','icon') }}></ha-icon> Zambretti {{ state_attr('sensor.zambretti_forecast','region') }} local direct guestimates</h3>
 
 {{state_attr('sensor.zambretti_forecast','alert') }}
 
 ***
-<b>Based on {{state_attr('sensor.zambretti_forecast','cfg_pressure_history_hours') }}hr atmospheric pressure:</b>
+<b>Based on {{state_attr('sensor.zambretti_forecast','cfg_pressure_history_hours') }}hr atmospheric pressure @{{state_attr('sensor.zambretti_forecast','last_updated') }}:</b>
 
 {{ states('sensor.zambretti_forecast') }}  
 
@@ -182,7 +184,7 @@ The content for the Markdown card:
 {{state_attr('sensor.zambretti_forecast','wind_system') }}
 <b>More:</b> {{ state_attr('sensor.zambretti_forecast','wind_system_urls') }}
 
-{% if state_attr('sensor.zambretti_forecast','temp_effect') != "No temperature alerts." %}<ha-alert alert-type="warning">{{state_attr('sensor.zambretti_forecast','temp_effect') }}</ha-alert>{% endif %}
+{% if state_attr('sensor.zambretti_forecast','temp_effect') != "No temperature alerts" %}<ha-alert alert-type="warning">{{state_attr('sensor.zambretti_forecast','temp_effect') }}</ha-alert>{% endif %}
 {% else %}
 {{states('sensor.zambretti_forecast') }}
 {% endif %}
@@ -192,15 +194,18 @@ Add a `Markdown` card, copy and paste the above into that and Bob's your uncle.
 
 ## Multiple Forecast Entities
 You can have multiple forecasts (`Integration entries`), using different configurations. Just click `ADD ENTRY` in the `Zambretti Weather Forecast` entity overview. It is wise to immediately change the name of the new forecast (3 dot menu) and of the entity (both `Name` and `Entity_id`).
-![enter image description here](https://columbusgoes.digital/zambretti/example3.png)
+
+<img src="https://columbusgoes.digital/zambretti/example3.png" alt="example3" width="50%"/>
+
 This can be useful, for instance, for having forecasts based on 3hr, 6hr and 12hr pressure history. To see what works best for you or to get a better picture. It might be wise to set `update_interval_minutes` to 60 minutes for the 6hr and 12hr forecasts to go easy on Home Assistant.
 
 To display multiple forecasts add a second etc. forecast by adding (use your own forecast name):
+
 ```jinja2
 <b>Based on {{state_attr('sensor.zambretti_forecast_6hr','cfg_pressure_history_hours') }}hr atmospheric pressure:</b>
 
-{{ states('sensor.zambretti_forecast_6hr') }}  
-
+{{ states('sensor.zambretti_forecast_6hr') }} 
+ 
 ```
 
 ## Add a nice pressure graph
@@ -211,9 +216,10 @@ To prevent this change the following in the card:
 - `Extend Y axis limits to fit data` to `on`. 
 
 That way it won't cause a panic when there is nothing much going on while still changing the scale automatically if required. 
-![enter image description here](https://columbusgoes.digital/zambretti/example2.png)
 
-If you want you can change the `Days to show` using decimals: 0.125 days is ... yup ... 3 hours.
+<img src="https://columbusgoes.digital/zambretti/example2.png" alt="example2" width="50%"/>
+
+If you want to you can change the `Days to show` using decimals: 0.125 days is ... yup ... 3 hours.
 
 ## Automations and Voice
 And of course if alert_level changes to 4 or 5 I have my Voice-PE warning me of impending doom. You'll need an automation.
