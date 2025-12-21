@@ -2,7 +2,8 @@ import logging
 #=============================================================================
 
 DOMAIN = "zambretti"
-Z_DEBUG = True
+Z_DEBUG = False
+Z_PERF = True
 
 DEFAULT_UPDATE_INTERVAL_MINUTE = 10
 DEFAULT_PRESSURE_HISTORY_HOURS = 3

@@ -7,33 +7,27 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.event import async_track_state_change, async_track_time_interval, async_call_later
 from homeassistant.exceptions import NoEntitySpecifiedError
+
 #Zambretti imports
 from .const import DOMAIN, Z_DEBUG
-from .wind_systems import wind_systems, determine_region
+from .wind_systems import wind_systems
 from .helpers import safe_float, alert_desc
 from .weather_processing import zambretti_forecast
+from .weather_processing_advanced import generate_pressure_forecast_advanced
 from .wind_analysis import determine_wind_speed, calculate_most_frequent_wind_direction, determine_wind_direction
-from .pressure_analysis import determine_pressure_trend
+from .pressure_analysis import determine_pressure_trend, get_normal_pressure
 from .temperature_analysis import determine_temperature_effect
 from .fog_analysis import determine_fog_chance
+from .region import determine_region
 
 #Python imports
 import voluptuous as vol
 import math, asyncio
 from datetime import timedelta
+import time
 
 import logging
 _LOGGER = logging.getLogger(__name__)
-
-CONF_PRESSURE = "sensor.outside_pressure"
-CONF_WIND_DIRECTION_DEGREES = "sensor.wind_direction_for_windrose"
-CONF_LATITUDE = "sensor.boat_gps_location_latitude"
-CONF_LONGITUDE = "sensor.boat_gps_location_longitude"
-CONF_TEMPERATURE = "sensor.outside_temperature"
-CONF_HUMIDITY = "sensor.outside_humidity"
-CONF_WIND_SPEED = "sensor.nmea2000_130306_wind_speed_knots"
-CONF_PRESSURE_HISTORY_HOURS = 3
-CONF_FOG_AREA_TYPE = "normal"
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_entities):
     """Set up the Zambretti sensor from a config entry."""
@@ -41,6 +35,57 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     sensor = Zambretti(hass, entry)
     async_add_entities([sensor], update_before_add=True)
+
+    # Store reference so the service can update all instances
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN].setdefault("entities", [])
+    hass.data[DOMAIN]["entities"].append(sensor)
+
+    # Register the force_update service (once)
+    if not hass.data[DOMAIN].get("service_registered"):
+        hass.data[DOMAIN]["service_registered"] = True
+
+        SERVICE_FORCE_UPDATE = "force_update"
+
+        SERVICE_FORCE_UPDATE_SCHEMA = vol.Schema(
+            {
+                vol.Optional("entity_id"): vol.Any("all", cv.entity_ids),
+            }
+        )
+
+        async def async_handle_force_update_service(call):
+            """Force update one or more Zambretti sensors."""
+            entity_id = call.data.get("entity_id")
+
+            entities = hass.data.get(DOMAIN, {}).get("entities", [])
+
+            # Determine targets
+            if entity_id is None or entity_id == "all":
+                targets = list(entities)
+            else:
+                wanted = set(entity_id)
+                targets = [e for e in entities if getattr(e, "entity_id", None) in wanted]
+
+            if not targets:
+                _LOGGER.warning("⚠️ zambretti.force_update: no matching entities found for entity_id=%s", entity_id)
+                return
+
+            _LOGGER.info("🔧 zambretti.force_update called for %s entities (entity_id=%s)", len(targets), entity_id)
+
+            # Run updates sequentially to avoid DB/history storms
+            for ent in targets:
+                try:
+                    await ent.async_update()
+                except Exception as err:
+                    _LOGGER.exception("❌ zambretti.force_update failed for %s: %s", getattr(ent, "entity_id", "unknown"), err)
+
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_FORCE_UPDATE,
+            async_handle_force_update_service,
+            schema=SERVICE_FORCE_UPDATE_SCHEMA,
+        )
+        _LOGGER.debug("✅ Registered service: %s.%s", DOMAIN, SERVICE_FORCE_UPDATE)
 
     # Remove SCAN_INTERVAL if you’re using dynamic scheduling
     # SCAN_INTERVAL = timedelta(minutes=10)  # <-- remove this
@@ -78,11 +123,9 @@ class Zambretti(SensorEntity):
         # ✅ Get the unique entry_id
         self.entry_id = entry.entry_id  
         _LOGGER.debug(f"__init__✅ Zambretti sensor received unique_id: {self.entry_id}")
-#        self.config = entry.data  # ✅ Store user-configured sensors
 
         # ✅ Unique ID from HA, stable even if sensors are updated
         self._attr_unique_id = f"{DOMAIN}_{self.entry_id}"
-#        self._attr_unique_id = f"Forecast"
 
         # ✅ Ensure a name is set, or HA may discard it
         self._attr_name = f"Zambretti Forecast"
@@ -91,22 +134,13 @@ class Zambretti(SensorEntity):
         # Zet counter for "waiting for sensors" state
         self.counter = 0
 
-        # required sensors, from the gui config
-#        self.wind_direction_sensor = self.config["wind_direction_sensor"]
-#        self.wind_speed_sensor_knots = self.config["wind_speed_sensor_knots"]
-#        self.atmospheric_pressure_sensor = self.config["atmospheric_pressure_sensor"]
-#        self.temperature_sensor = self.config["temperature_sensor"]
-#        self.humidity_sensor = self.config["humidity_sensor"]
-#        self.gps_location_latitude = self.config["gps_location_latitude"]
-#        self.gps_location_longitude = self.config["gps_location_longitude"]
-        # Other config settings
-#        self.pressure_history_hours = self.config.get("pressure_history_hours", 3)
-#        self.fog_area_type = entry.options.get("fog_area_type", entry.data.get("fog_area_type", "normal"))        
-
         # attributes for Zambretti sensor
         self._attributes = {
             "icon": "mdi:zend",
-        
+            
+            # Forecast Advanced, based on pressure development 3hr, 6hr and 12hr
+            "forecast_advanced": None,
+            
             # 🚨 Alert System
             "alert_level": 0,
             "alert": None,
@@ -139,6 +173,8 @@ class Zambretti(SensorEntity):
             "wind_direction_change": None,
     
             # ⬇️ Atmospheric Pressure
+            "normal_pressure": None,
+            "pressure": None,
             "pressure_trend": None,
             "pressure_move_per_hour": None,
             "pressure analysis": None,
@@ -191,6 +227,8 @@ class Zambretti(SensorEntity):
     async def async_update(self):
         """Fetch sensor data from HA and update the entity state."""
 
+        t0_total = time.perf_counter()
+
         _LOGGER.debug(f"✅ entering async_update.")
 
         # Reload configuration every update (to apply changes)
@@ -204,24 +242,36 @@ class Zambretti(SensorEntity):
         required_sensors = [
             self.atmospheric_pressure_sensor,
             self.wind_direction_sensor,
-            self.gps_location_latitude,
-            self.gps_location_longitude,
+            self.device_tracker_home,
             self.temperature_sensor,
             self.humidity_sensor,
             self.wind_speed_sensor_knots,
         ]
         # if not all required sensors are available yet then try again later
-        latitude_state = self.hass.states.get(self.gps_location_latitude)
-        longitude_state = self.hass.states.get(self.gps_location_longitude)
         if not self.sensors_valid(required_sensors):
             _LOGGER.debug("⚠️ Required sensors not yet available. Scheduling re-check in 10 seconds.")
             self.counter += 1
             self._state = f"Zambretti waiting for sensors ... attempt {self.counter}"
             # Push the updated state to HA immediately
+            t_pub0 = time.perf_counter()
             try:
                 self.async_write_ha_state()
             except NoEntitySpecifiedError:
                 _LOGGER.debug("Entity not yet registered; skipping async_write_ha_state().")
+            t_publish_ms = (time.perf_counter() - t_pub0) * 1000.0
+
+            t_total_ms = (time.perf_counter() - t0_total) * 1000.0
+            t_compute_ms = max(t_total_ms - t_publish_ms, 0.0)
+
+            if Z_DEBUG:
+                _LOGGER.info(
+                    "⏱️ Zambretti perf (%s): total=%.1fms compute=%.1fms publish=%.1fms",
+                    getattr(self, "entity_id", "unknown"),
+                    t_total_ms,
+                    t_compute_ms,
+                    t_publish_ms,
+                )
+
             # Schedule a re-check in 10 seconds without blocking startup
             loop = asyncio.get_running_loop()
             loop.call_later(10, lambda: loop.create_task(self.async_update()))
@@ -235,8 +285,7 @@ class Zambretti(SensorEntity):
         # -------------------------------
         pressure_state = self.hass.states.get(self.atmospheric_pressure_sensor)
         wind_direction_state = self.hass.states.get(self.wind_direction_sensor)
-        latitude_state = self.hass.states.get(self.gps_location_latitude)
-        longitude_state = self.hass.states.get(self.gps_location_longitude)
+        device_tracker_home_state = self.hass.states.get(self.device_tracker_home)
         temperature_state = self.hass.states.get(self.temperature_sensor)
         humidity_state = self.hass.states.get(self.humidity_sensor)
         wind_speed_state = self.hass.states.get(self.wind_speed_sensor_knots)
@@ -249,8 +298,6 @@ class Zambretti(SensorEntity):
         self._attributes["sensor_humidity"] = humidity_state.state
         self._attributes["sensor_temperature"] = temperature_state.state
         self._attributes["sensor_pressure"] = pressure_state.state
-        self._attributes["sensor_latitude"] = latitude_state.state
-        self._attributes["sensor_longitude"] = longitude_state.state
         
         # -------------------------------
         # Update other config entries
@@ -268,19 +315,24 @@ class Zambretti(SensorEntity):
         humidity = safe_float(humidity_state.state)
         temperature = safe_float(temperature_state.state)
         pressure_history_hours = int(safe_float(self.pressure_history_hours))
+
+        # -------------------------------
+        # Retrieve, populate and store lat/lon
+        # -------------------------------
+        if device_tracker_home_state and "latitude" in device_tracker_home_state.attributes:
+            latitude = safe_float(device_tracker_home_state.attributes["latitude"])
+            longitude = safe_float(device_tracker_home_state.attributes["longitude"])
+            _LOGGER.debug(f"Device Tracker Location: lat={latitude}, lon={longitude}")
+        else:
+            _LOGGER.warning("Could not retrieve latitude and longitude from device tracker!")
+        self._attributes["sensor_latitude"] = latitude
+        self._attributes["sensor_longitude"] = longitude
  
         # -------------------------------
         # -------------------------------
         # PREP DONE, LET'S GET GOING CREATING THE FORECAST
         # -------------------------------
         # -------------------------------
-        
-        # -------------------------------
-        # Retrieve GPS Location
-        # -------------------------------
-        latitude = safe_float(latitude_state.state)
-        longitude = safe_float(longitude_state.state)
-        _LOGGER.debug(f"ℹ️ GPS location established: {latitude}, {longitude}")
 
         # -------------------------------
         # Determine Region
@@ -291,6 +343,14 @@ class Zambretti(SensorEntity):
             "region_url": region_url,
         })
 
+        # -------------------------------
+        # Determine normal pressure for Region in current month
+        # -------------------------------
+        normal_pressure = get_normal_pressure(region)
+        self._attributes.update({
+            "normal_pressure": normal_pressure,
+            "pressure": pressure,
+        })
 
         # -------------------------------
         # Analyze Atmospheric Pressure
@@ -393,9 +453,25 @@ class Zambretti(SensorEntity):
             slope,
             trend,
             current_wind_speed,
-            temperature
+            temperature,
+            normal_pressure
         )
         alert_level = max(alert_level, t_alert_level)
+        
+        # -------------------------------
+        # Generate advanced forecast, based on development over 3hr, 6hr and 12hr
+        # -------------------------------
+        forecast_advanced = await generate_pressure_forecast_advanced(
+            self.hass,
+            self.atmospheric_pressure_sensor,
+            pressure,
+            region,
+            short=False
+        )
+        self._attributes.update({
+            "forecast_advanced": forecast_advanced,
+        })
+
         
         # We now have everythong to make up a full forecast
         estimated_wind_speeds = f"{int(safe_float(estimated_wind_speed)*0.8)}-{int(safe_float(estimated_wind_speed)*1.2)}"
@@ -455,12 +531,27 @@ class Zambretti(SensorEntity):
             "fully_started": True,
             "dbg_len_state": len(self._state),
         })
+
+        # Compute timing for everything above
+        t_compute_ms = (time.perf_counter() - t0_total) * 1000.0
         
         # Push for an update of Zambretti sensor
+        t_pub0 = time.perf_counter()
         try:
             self.async_write_ha_state()
         except NoEntitySpecifiedError:
             _LOGGER.debug("Entity not yet registered; skipping async_write_ha_state().")
+        t_publish_ms = (time.perf_counter() - t_pub0) * 1000.0
+
+        t_total_ms = (time.perf_counter() - t0_total) * 1000.0
+
+        _LOGGER.info(
+            "⏱️ Zambretti perf (%s): total=%.1fms compute=%.1fms publish=%.1fms",
+            getattr(self, "entity_id", "unknown"),
+            t_total_ms,
+            t_compute_ms,
+            t_publish_ms,
+            )
 
 
         _LOGGER.debug("✅ Entity updated successfully.") 
@@ -485,8 +576,7 @@ class Zambretti(SensorEntity):
         self.temperature_sensor = self.config.get("temperature_sensor", None)
         self.humidity_sensor = self.config.get("humidity_sensor", None)
         
-        self.gps_location_latitude = self.config.get("gps_location_latitude", None)
-        self.gps_location_longitude = self.config.get("gps_location_longitude", None)
+        self.device_tracker_home = self.config.get("device_tracker_home", None)
         
         self.pressure_history_hours = self.config.get("pressure_history_hours", 3)  # Default 3 hours
         self.fog_area_type = self.config.get("fog_area_type", "normal")  # Default to 'normal'

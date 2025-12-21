@@ -1,0 +1,10 @@
+force_update:
+  name: Force update
+  description: Force an immediate update of one or more Zambretti sensors (or all).
+  fields:
+    entity_id:
+      name: Entity
+      description: Target Zambretti sensor entity_id(s) (e.g. sensor.zambretti_forecast). Use "all" to update all Zambretti sensors.
+      example: "sensor.zambretti_forecast"
+      selector:
+        text:

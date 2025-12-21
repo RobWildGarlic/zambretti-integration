@@ -74,4 +74,4 @@ class ZambrettiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def async_get_options_flow(config_entry):
         """Return the options flow handler."""
-        return ZambrettiOptionsFlowHandler(config_entry)
+        return ZambrettiOptionsFlowHandler()

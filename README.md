@@ -1,5 +1,3 @@
-
-
 # Zambretti Weather Forecast Integration
   - [Before we get going](#before-we-get-going)
   - [Overview](#overview)
@@ -11,6 +9,8 @@
   - [Create your own wind direction sensor](#create-your-own-wind-direction-sensor)
   - [Are your units of measurement different?](#are-your-units-of-measurement-different)
   - [What sensors?](#what-sensors)
+  - [Force update](#force-update)
+  - [Performance](#performance)
 - [Using the integration](#using-the-integration)
   - [Wait for Zambretti to have started up](#wait-for-zambretti-to-have-started-up)
   - [Multiple Forecast Entities](#multiple-forecast-entities)
@@ -253,6 +253,18 @@ I hate it if an integration creates many sensors. I already have thousands. So Z
 Done, you now have a new sensor, Home Assistant will build a history for it and you can use it anywhere.
 
 See [Integration Attributes & Meanings](#integration-attributes-meanings) below for a full list of attributes.
+## Force Update
+You can force a new forecast by using the Zambretti Force Update service. That takes the Zambretti forecast (you can have many) sensor as input (e.g. 'sensor.zambretti_forecast_12hr'), but leaving it empty will update all Zambretti forecast sensors.
+
+So create a button on your dashboard and at 'Interactions' choose 'perform action'. Then look for and enter 'Zambretti force update'. If required enter the forecast sensor. Easy peasy!
+## Performance
+Zambretti requires a lot from Home Assistant. It has to gather a lot to historic info on a lot of sensors. On a Raspberri Pi5 it takes a second to update. On a pi4 or pi3 etc. that will be more. So be careful with the update interval in setting up the Zambretti integration. 
+
+To help you get insight in Zambretti's system load it registers an 'Info' line in the system logs every time it updates the forecast. Go to System->Settings->Log, klik the three-dot menu end choose 'Show full logs'. Type 'Zambretti' in the search bar and you will see lines like:
+```
+2025-12-21 14:54:48.692 INFO (MainThread) [custom_components.zambretti.sensor] ⏱️ Zambretti perf (sensor.zambretti_forecast_12hr): total=997.4ms compute=997.0ms publish=0.4ms
+```
+It is best to set the update interval to high, e.g. 60 minutes or more, and then use the 'Force update' service of the Zambretti integration to create a button to update the forecast. If it interferes with your Home Assistant performance then you might consider setting the update interval as high as possible and using the Force update button to get your forecast.
 
 # How useful is Zambretti?
 A reasonable forecast window for Zambretti barometer-based weather prediction is up to 12 to 24 hours.
@@ -272,7 +284,6 @@ This paragraph is about the latter.
 - Standard (12-36 hours): Somewhat useful but increasingly uncertain.
 
 ## Zambretti Struggles with Fast-Moving Systems
-
 Zambretti’s forecasting method is based on gradual pressure trends, making it less reliable in situations where weather systems change rapidly. Why?
 
 - Designed for Slow Changes:
@@ -285,7 +296,6 @@ Zambretti’s forecasting method is based on gradual pressure trends, making it 
   - In areas where wind-driven systems dominate (like hurricanes, squall lines, or strong depressions), Zambretti may lag behind real conditions.
 
 This Zambretti integration also analyzes wind and temperature changes that may add value to the forecast. It also has a fog analysis as a stand alone warning - fog is not used for the forecast.
-
 ## So what is the value?
 
 In the end this Zambretti integration provides you with a set of forecasts (general forecast, alert, wind, tempererature, fog, wind system) that all together can help you make decisions (e.g. 'Go out sailing' versus 'Buckle up' versus 'Stay put'). As with any weather forecast: don't blame Zambretti if it doesn't pan out the way it was forecast.
