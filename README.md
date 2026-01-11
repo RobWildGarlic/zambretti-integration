@@ -19,6 +19,16 @@
   - [Add a nice pressure graph](#add-a-nice-pressure-graph)
   - [Automations and Voice](#automations-and-voice)
   - [Create your own sensor from an attribute](#create-your-own-sensor-from-an-attribute)
+- [Zambretti Low Pressure Estimator](#zambretti-low-pressure-estimator)
+  - [What does it estimate?](#what-does-it-estimate)
+  - [Where do these values appear?](#where-do-these-values-appear)
+  - [Important limitations](#important-limitations)
+  - [In one sentence](#in-one-sentence)
+- [Using Zambretti with AI (experimental)](#using-zambretti-with-ai-experimental)
+   - [What Zambretti does (and does not do)](#what-zambretti-does-and-does-not-do)
+   - [How to use it](#how-to-use-it)
+   - [Practical tip](#practical-tip)
+   - [Important notes](#important-notes)
 - [How useful is Zambretti?](#how-useful-is-zambretti)
   - [Why up to 12-24 Hours?](#why-up-to-12-24-hours)
   - [Recommended Forecast Window Options](#recommended-forecast-window-options)
@@ -189,6 +199,9 @@ The content for the Markdown card:
 {% else %}
 {{states('sensor.zambretti_forecast') }}
 {% endif %}
+***
+<b>Based on low pressure system analysis</b>
+{{ state_attr('sensor.zambretti_forecast','low_summary') }}
 ```
 Add a `Markdown` card, copy and paste the above into that and Bob's your uncle.
 
@@ -268,27 +281,14 @@ To help you get insight in Zambretti's system load it registers an 'Info' line i
 It is best to set the update interval to high, e.g. 60 minutes or more, and then use the 'Force update' service of the Zambretti integration to create a button to update the forecast. If it interferes with your Home Assistant performance then you might consider setting the update interval as high as possible and using the Force update button to get your forecast.
 
 
-# **Zambretti Low Pressure Estimator (a different forecast method)**
-
-  
-
-## **What is this?**
-
+# **Zambretti Low Pressure Estimator**
 The  **Low Pressure Estimator**  is a smart helper that looks at your  **local weather sensors**  (pressure, wind speed, wind direction) and tries to answer a very practical question:
 > **“Is a low-pressure system coming, where is it, and how bad will it be?”**
-> 
-It does  **not**  use internet weather data. It works  **only from your own instruments**. It adds to the normal Zambretti forecast to give you more options to interpret the forecasts.
-Mind you, the Zambretti forecasts may disagree on the forecast. That is to be expected, it is up to you to draw your own conclusions on the most likely forecast.
-    
 
+It does  **not**  use internet weather data. It works  **only from your own instruments**. It adds to the normal Zambretti forecast to give you more options to interpret the forecasts. Mind you, the Zambretti forecasts may disagree on the forecast. That is to be expected, it is up to you to draw your own conclusions on the most likely forecast.
+**The low pressure estimator does not use 'pressure_history_hours' from the configuration of the Zambretti integration. It uses its own history window. Therefore the low pressure estimator forecast will be based on the same pressure history, regardless of the configuration.**
 ## **What does it estimate?**
-
-  
-
 From your local measurements it derives:
-
-  
-
 ### **Where is the low?**
 
 -   **Low direction**:
@@ -359,24 +359,14 @@ Shows in which  **direction the low is moving**  relative to you:
    -   Towards you
     -   Passing north/south of you
     -   Moving away
-        
-    
-
-  
 
 Very useful to know whether conditions will worsen or improve.
 
 ### **Confidence level**
-
-  
-
 Each estimate gets a confidence:
 -   Low
 -   Medium
 -   High
-    
-
-  
 
 This depends on:
 
@@ -428,8 +418,53 @@ You can use them in:
 ## **In one sentence**
 
 > The Low Pressure Estimator turns your  **own sensors**  into a  **mini weather analyst**  that tells you  _if_,  _where_, and  _how fast_  bad weather is approaching.
+# Using Zambretti with AI (experimental)
+Zambretti provides a special sensor attribute called  **ai_prompt**.
 
+This attribute contains a **complete, ready-to-use description of the current weather situation**, including:
 
+-   Current measurements
+-   Derived trends and indicators
+-   The low-pressure analysis
+-   A 24-hour history of pressure, temperature, wind speed, and wind direction
+-   A pre-formatted instruction text for an AI weather assistant
+    
+This text is designed to be sent  **as-is**  to an AI system (such as ChatGPT or another LLM) to obtain a  **human-readable local weather forecast**.
+## What Zambretti does (and does not do)
+Zambretti:
+
+-   ✅ Generates the data and the prompt text
+-   ✅ Keeps everything fully local and based on your own sensors
+-   ❌ Does  **not**  call any AI services itself
+-   ❌ Does  **not**  send any data to the internet
+    
+Connecting this to an AI (for example using Home Assistant’s  ai_task, a script, or an automation) is  **intentionally left to the user**. This is highly dependent on which AI service you use and is outside the scope of this manual.
+## How to use it
+You can access the prompt text using this template:
+`{{ state_attr('sensor.zambretti_forecast', 'ai_prompt') }}`
+This returns a long, structured text block that you can pass directly to your AI integration.
+## Practical tip
+When constructing your AI prompt:
+
+1.  **First write what you want the AI to do**, for example:
+    
+    > “You are a local weather forecaster. Based only on the following data, give a 12-hour forecast and a 24-hour outlook.”
+    
+2.  **Then append the Zambretti prompt attribute**, for example:
+    > You are a local weather forecaster. Based only on the following data, give a 12-hour forecast and a 24-hour outlook.
+{{ state_attr('sensor.zambretti_forecast', 'ai_prompt') }}
+3.  **Inspect the attribute once in Developer Tools → States** to see exactly what information is included.
+## Important notes
+-   The  ai_prompt  may be  **long**. This is normal: it includes history and context so the AI can reason properly.
+-   All data is **local and from your own sensors**.
+-   The quality of the forecast depends on:
+    -   Your sensor quality
+    -   The amount of history available
+    -   The AI model you use
+
+ Think of this feature as:
+> Zambretti provides the **meteorological brain dump**.
+> The AI turns it into a  **human explanation**.
 # How useful is Zambretti?
 A reasonable forecast window for Zambretti barometer-based weather prediction is up to 12 to 24 hours.
 Note: there are two types of window: 

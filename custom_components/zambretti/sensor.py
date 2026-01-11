@@ -21,6 +21,7 @@ from .fog_analysis import determine_fog_chance
 from .region import determine_region
 #from .low_estimator import estimate_low_properties
 from .low_estimator import async_estimate_low_properties
+from .ai_prompt import build_ai_prompt
 
 #Python imports
 import voluptuous as vol
@@ -214,7 +215,15 @@ class Zambretti(SensorEntity):
             "low_frontal_zone": None,
             "low_anchoring_risk": None,
             "low_summary": None,
-        
+
+            # AI prompt output
+            "ai_prompt": None,
+            "ai_history_pressure_hpa": None,
+            "ai_history_temperature_c": None,
+            "ai_history_wind_speed_kn": None,
+            "ai_history_wind_direction": None,
+            "ai_history_meta": None, 
+                   
             # other Configuration
             "cfg_update_interval_minutes": None,
             "cfg_pressure_history_hours": None,
@@ -533,8 +542,38 @@ class Zambretti(SensorEntity):
             "forecast_advanced": forecast_advanced,
         })
 
+        # -------------------------------
+        # Generate AI prompt + 24h history
+        # -------------------------------
+        try:
+            ai = await build_ai_prompt(
+                self.hass,
+                pressure_entity_id=self.atmospheric_pressure_sensor,
+                temperature_entity_id=self.temperature_sensor,
+                wind_speed_entity_id=self.wind_speed_sensor_knots,
+                wind_direction_entity_id=self.wind_direction_sensor,
+                z_attrs=self._attributes,              # use everything you already computed
+                history_hours=24,
+                sample_minutes=60,                     # hourly samples (keeps attribute size sane)
+            )
+
+            self._attributes["ai_prompt"] = ai["prompt"]
+
+            hist = ai["history"]
+            self._attributes["ai_history_pressure_hpa"] = hist.get("pressure_hpa", [])
+            self._attributes["ai_history_temperature_c"] = hist.get("temperature_c", [])
+            self._attributes["ai_history_wind_speed_kn"] = hist.get("wind_speed_kn", [])
+            self._attributes["ai_history_wind_direction"] = hist.get("wind_direction", [])
+            self._attributes["ai_history_meta"] = hist.get("meta", {})
+
+        except Exception as e:
+            _LOGGER.debug("AI prompt build failed: %s", e)
         
+
+
+        # -------------------------------
         # We now have everythong to make up a full forecast
+        # -------------------------------
         estimated_wind_speeds = f"{int(safe_float(estimated_wind_speed)*0.8)}-{int(safe_float(estimated_wind_speed)*1.2)}"
         wind_forecast = f"Wind estimate {estimated_wind_speeds}kn, {wind_direction_change}"
         full_forecast = f"{p_analysis}. {forecast}. {wind_forecast}. {fog_chance} right now. {temp_effect}."
