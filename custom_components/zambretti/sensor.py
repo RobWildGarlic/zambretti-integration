@@ -19,6 +19,8 @@ from .pressure_analysis import determine_pressure_trend, get_normal_pressure
 from .temperature_analysis import determine_temperature_effect
 from .fog_analysis import determine_fog_chance
 from .region import determine_region
+#from .low_estimator import estimate_low_properties
+from .low_estimator import async_estimate_low_properties
 
 #Python imports
 import voluptuous as vol
@@ -195,6 +197,23 @@ class Zambretti(SensorEntity):
             "sensor_humidity": None,
             "sensor_temperature": None,
             "sensor_pressure": None,
+            
+            # Low pressure data
+            "low_direction": None,
+            "low_direction_deg": None,
+            "low_distance_class": None,
+            "low_distance_km_range": None,
+            "low_wind_trend_class": None,
+            "low_wind_trend_delta_kn": None,
+            "low_estimate_confidence": None,
+            "low_weather_trend": None,
+            "low_time_to_impact": None,
+            "low_time_to_impact_range": None,
+            "low_wind_rotation_likely": None,
+            "low_wind_dir_delta_deg": None,
+            "low_frontal_zone": None,
+            "low_anchoring_risk": None,
+            "low_summary": None,
         
             # other Configuration
             "cfg_update_interval_minutes": None,
@@ -423,7 +442,49 @@ class Zambretti(SensorEntity):
         })
         _LOGGER.debug(f"ℹ️ Temperature effect analyzed: {temp_effect}")
         alert_level = max(alert_level, t_alert_level)
-
+        
+        # -------------------------------
+        # Analyze low pressure location and consequences for wind
+        # -------------------------------
+        low = await async_estimate_low_properties(
+            hass=self.hass,
+            wind_from_entity_id=self.wind_direction_sensor,
+            wind_speed_entity_id=self.wind_speed_sensor_knots,
+            pressure_entity_id=self.atmospheric_pressure_sensor,
+            wind_speed_history_minutes=90,
+            wind_dir_history_minutes=120,
+            pressure_history_hours=12,
+            pressure_slope_window_hours=3,
+            latitude=latitude,  # ✅ your live GPS latitude
+        )
+        
+        _LOGGER.warning(
+            "LOW DEBUG: wind_dir=%s wind_speed=%s pressure=%s",
+            self.hass.states.get(self.wind_direction_sensor),
+            self.hass.states.get(self.wind_speed_sensor_knots),
+            self.hass.states.get(self.atmospheric_pressure_sensor),
+        )
+        
+        self._attributes.update({
+            # existing
+            "low_direction": low.low_bearing_compass,
+            "low_direction_deg": low.low_bearing_deg,
+            "low_distance_class": low.distance_class,
+            "low_distance_km_range": low.distance_km_range,
+            "low_wind_trend_class": low.wind_trend,
+            "low_wind_trend_delta_kn": low.wind_delta_kn if low.wind_delta_kn is not None else "Unknown",
+            "low_estimate_confidence": low.confidence,
+            # NEW: 1,2,3,5,6
+            "low_weather_trend": low.weather_trend,
+            "low_time_to_impact": low.time_to_impact,
+            "low_time_to_impact_range": low.time_to_impact_range,
+            "low_wind_rotation_likely": low.wind_rotation_likely,
+            "low_wind_dir_delta_deg": low.wind_dir_delta_deg if low.wind_dir_delta_deg is not None else "Unknown",
+            "low_frontal_zone": low.frontal_zone if low.frontal_zone is not None else "Unknown",
+            "low_anchoring_risk": low.anchoring_risk,
+            "low_summary": low.summary,
+        })
+        
         # -------------------------------
         # Calculate Fog Probability
         # -------------------------------

@@ -1,3 +1,4 @@
+
 # Zambretti Weather Forecast Integration
   - [Before we get going](#before-we-get-going)
   - [Overview](#overview)
@@ -265,6 +266,169 @@ To help you get insight in Zambretti's system load it registers an 'Info' line i
 2025-12-21 14:54:48.692 INFO (MainThread) [custom_components.zambretti.sensor] ⏱️ Zambretti perf (sensor.zambretti_forecast_12hr): total=997.4ms compute=997.0ms publish=0.4ms
 ```
 It is best to set the update interval to high, e.g. 60 minutes or more, and then use the 'Force update' service of the Zambretti integration to create a button to update the forecast. If it interferes with your Home Assistant performance then you might consider setting the update interval as high as possible and using the Force update button to get your forecast.
+
+
+# **Zambretti Low Pressure Estimator (a different forecast method)**
+
+  
+
+## **What is this?**
+
+The  **Low Pressure Estimator**  is a smart helper that looks at your  **local weather sensors**  (pressure, wind speed, wind direction) and tries to answer a very practical question:
+> **“Is a low-pressure system coming, where is it, and how bad will it be?”**
+> 
+It does  **not**  use internet weather data. It works  **only from your own instruments**. It adds to the normal Zambretti forecast to give you more options to interpret the forecasts.
+Mind you, the Zambretti forecasts may disagree on the forecast. That is to be expected, it is up to you to draw your own conclusions on the most likely forecast.
+    
+
+## **What does it estimate?**
+
+  
+
+From your local measurements it derives:
+
+  
+
+### **Where is the low?**
+
+-   **Low direction**:
+    N, NE, E, SE, S, SW, W, NW
+    
+-   **Low distance (class + rough range)**:
+    -   Far (> ~800 km)
+    -   Distant (~400–800 km)
+    -   Approaching (~200–400 km)
+    -   Near (~80–200 km)
+    -   Very near (~30–80 km)
+    -   Imminent (< ~30 km)
+        
+    
+
+
+### **What is the wind doing?**
+-   **Wind trend**:
+    -   Increasing
+    -   Decreasing
+    -   Stable
+        (with an extra flag if it’s changing  _strongly_)
+        
+    
+-   **Wind backing or veering**:
+    
+    -   Turning clockwise or counter-clockwise, which is a classic sign of approaching or passing systems.
+        
+
+
+### **What is the pressure doing?**
+
+-   **Pressure trend (hPa per hour)**:
+    -   Rising
+    -   Stable
+    -   Falling
+        And how fast.
+        
+    
+
+  
+
+This is one of the most important storm indicators.
+
+### **Overall weather trend (very useful!)**
+
+  
+
+A combined **Weather Trend Index**:
+-   Improving
+-   Stable
+-   Deteriorating
+-   Rapidly deteriorating
+    
+
+  
+
+This combines:
+-   Pressure trend
+-   Wind changes
+-   Wind direction changes
+
+
+### **Low movement direction**
+
+Shows in which  **direction the low is moving**  relative to you:
+    
+   -   Towards you
+    -   Passing north/south of you
+    -   Moving away
+        
+    
+
+  
+
+Very useful to know whether conditions will worsen or improve.
+
+### **Confidence level**
+
+  
+
+Each estimate gets a confidence:
+-   Low
+-   Medium
+-   High
+    
+
+  
+
+This depends on:
+
+-   How clean and consistent your sensor data is
+-   How strong and clear the trends are
+    
+
+## **Where do these values appear?**
+
+  
+
+All results are exposed as  **attributes**  of the weather / Zambretti sensor, for example:
+
+-   low.direction
+-   low.distance_class
+-   low.distance_km
+-   low.weather_trend
+-   low.wind_trend
+-   low.pressure_slope
+-   low.confidence
+-   etc.
+
+low.summary holds a textual summary of the forecast based on low pressure system.
+    
+
+  
+
+You can use them in:
+
+-   Dashboards
+-   Automations
+-   Alerts (e.g. “Notify me if rapidly deteriorating + near”)
+-   Logging
+    
+
+
+
+## **Important limitations**
+
+-   This is  **not**  a synoptic weather model.
+    
+-   It gives  **trend-based local intelligence**, not exact forecasts.
+    
+-   It works best when:
+    -   You have good sensors
+    -   You have at least several hours of history
+    -   Weather is actually changing (not in dead calm high-pressure domes)
+  
+## **In one sentence**
+
+> The Low Pressure Estimator turns your  **own sensors**  into a  **mini weather analyst**  that tells you  _if_,  _where_, and  _how fast_  bad weather is approaching.
+
 
 # How useful is Zambretti?
 A reasonable forecast window for Zambretti barometer-based weather prediction is up to 12 to 24 hours.
