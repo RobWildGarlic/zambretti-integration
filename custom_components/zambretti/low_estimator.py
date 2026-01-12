@@ -148,6 +148,10 @@ class LowEstimate:
     wind_dir_delta_deg: Optional[float]
     frontal_zone: bool
     anchoring_risk: str
+    # Relative position/movement inference (single-station; heuristic)
+    low_relative_position: str  # West / East / North-South / Unknown
+    low_movement: str  # Approaching / Passing / Receding / Unknown
+    impact_window_status: str  # Future / Now / Passed / Unknown
 
     # Human-readable explanation
     summary: str
@@ -220,7 +224,14 @@ def build_low_summary(low: "LowEstimate") -> str:
         dist = "unknown distance"
 
     direction = f"{low.low_bearing_compass} ({low.low_bearing_deg:.0f}°)" if low.low_bearing_compass else "unknown direction"
-    impact = low.time_to_impact_range or "unknown time window"
+    if getattr(low, 'impact_window_status', None) == 'Passed':
+        impact = 'already passed'
+    elif getattr(low, 'impact_window_status', None) == 'Now':
+        impact = 'now / imminent'
+    elif getattr(low, 'time_to_impact_range', None):
+        impact = low.time_to_impact_range
+    else:
+        impact = 'unknown time window'
     conf = _confidence_text(low.confidence)
 
     # Wind line
@@ -232,7 +243,7 @@ def build_low_summary(low: "LowEstimate") -> str:
 
     # Rotation / front / anchor
     rot = ""
-    if low.wind_rotation_likely and low.wind_rotation_likely != "Uncertain":
+    if low.wind_rotation_likely and low.wind_rotation_likely not in ("Uncertain", "Unknown"):
         rot = f" Rotation: {low.wind_rotation_likely}."
     elif low.wind_rotation_likely:
         rot = " Rotation: uncertain."
@@ -263,7 +274,7 @@ def _derive_weather_trend(distance_class: str, wind_trend: str) -> str:
     }.get(distance_class, "Stable")
 
     # If wind is clearly easing while the system is not near, treat as improving.
-    if "Decreasing" in wind_trend and distance_class in ("Far", "Distant", "Approaching"):
+    if "Decreased" in wind_trend and distance_class in ("Far", "Distant", "Approaching"):
         return "Improving"
 
     # If wind is ramping hard, upgrade one step.
@@ -278,27 +289,33 @@ def _derive_weather_trend(distance_class: str, wind_trend: str) -> str:
 
 def _derive_wind_rotation_likely(distance_class: str, wind_dir_delta_deg: Optional[float]) -> str:
     """
-    3) Wind rotation expectation.
+    Wind direction change (veer/back) from recent history.
 
-    We don't know the low's track from a single station, so we keep this honest:
-    - We look at recent wind-direction rotation (delta over the chosen history window).
-    - If the low is approaching/near and rotation is significant, we say "likely" continuing.
-    - Otherwise: "Uncertain".
+    We separate *observed* rotation from a statement about whether it is "likely" to continue:
+      - If rotation is tiny: say "No significant change".
+      - If rotation is modest: say "Slight veering/backing".
+      - If rotation is strong:
+          * when a low is near-ish -> "Veering/Backing likely"
+          * otherwise -> "Veering/Backing (observed)" (no claim about continuation)
     """
     if wind_dir_delta_deg is None:
-        return "Uncertain"
+        return "Unknown"
 
-    # Significant direction change threshold over the history window
-    if abs(wind_dir_delta_deg) < 10.0:
-        return "Uncertain"
+    d = float(wind_dir_delta_deg)
 
-    # Only make a "likely" statement when a low is plausibly influencing things.
-    if distance_class not in ("Approaching", "Near", "Very near", "Imminent"):
-        return "Uncertain"
+    # Tiny/noisy range
+    if abs(d) < 3.0:
+        return "No significant change"
 
-    if wind_dir_delta_deg > 0:
-        return "Veering likely"
-    return "Backing likely"
+    # Modest rotation: report it, but avoid overclaiming
+    if abs(d) < 10.0:
+        return "Slight veering" if d > 0 else "Slight backing"
+
+    nearish = distance_class in ("Approaching", "Near", "Very near", "Imminent")
+    if d > 0:
+        return "Veering likely" if nearish else "Veering (observed)"
+    return "Backing likely" if nearish else "Backing (observed)"
+
 
 
 def _derive_frontal_zone(distance_class: str, pressure_slope_hpa_per_hr: Optional[float], wind_trend: str) -> bool:
@@ -330,6 +347,71 @@ def _derive_anchoring_risk(distance_class: str, wind_trend: str) -> str:
     if distance_class == "Approaching":
         return "Caution" if ("Increasing" in wind_trend or "Stable" in wind_trend) else "Safe"
     return "Safe"
+
+
+
+def _derive_relative_position_and_movement(
+    low_compass_8: str,
+    pressure_slope_hpa_per_hr: Optional[float],
+    distance_class: str,
+    wind_trend: str,
+) -> Tuple[str, str, str]:
+    """
+    Infer where the low is relative to us (roughly West/East/etc) and whether it is
+    approaching / passing / receding.
+
+    IMPORTANT: this is *single-station* inference. We therefore keep it simple and
+    consistent with the strongest local signals:
+
+      - Pressure FALLING  -> approaching (impact in the future), unless we're already very near a minimum.
+      - Pressure RISING   -> receding (impact passed), even if the low is already far away.
+      - Pressure near-flat and near-ish distance -> passing/overhead (impact now).
+
+    We still report the Buys-Ballot-derived sector ("East"/"West"/...) because it's useful context,
+    but we do NOT gate movement on distance (that caused false "unknown" when pressure was
+    already rising slowly).
+    """
+    comp = str(low_compass_8 or "").upper().strip()
+    ps = pressure_slope_hpa_per_hr
+
+    # Relative sector (8-point compass)
+    COMPASS_NAMES = {
+        "N": "North",
+        "NE": "North-East",
+        "E": "East",
+        "SE": "South-East",
+        "S": "South",
+        "SW": "South-West",
+        "W": "West",
+        "NW": "North-West",
+    }
+    pos = COMPASS_NAMES.get(comp, "Unknown")
+    
+    if ps is None:
+        return pos, "Unknown", "Unknown"
+
+    # Tuned thresholds for pressure slope (hPa/hr)
+    # These are intentionally low because marine barometers often show smaller residual trends
+    # well after the main passage.
+    FALLING = -0.05   # falling at least slightly
+    RISING = +0.05    # rising at least slightly
+    FLAT = 0.03       # near-flat band around zero
+    NEARISH = distance_class in ("Near", "Very near", "Imminent")
+
+    # Passing / overhead: near-ish AND pressure close to minimum (slope near zero)
+    if NEARISH and abs(ps) <= FLAT:
+        return pos, "Passing", "Now"
+
+    # Receding: pressure rising, or strong easing winds (post-frontal signature)
+    if ps >= RISING or wind_trend in ("Decreased a lot", "Decreased"):
+        return pos, "Moving away", "Passed"
+
+    # Approaching: pressure falling
+    if ps <= FALLING:
+        return pos, "Approaching", "Future"
+
+    # Otherwise: weak signal
+    return pos, "Unknown", "Unknown"
 
 
 def estimate_low_properties(
@@ -371,6 +453,9 @@ def estimate_low_properties(
     wind_rotation_likely = "Uncertain"
     frontal_zone = False
     anchoring_risk = "Safe"
+    low_relative_position = "Unknown"
+    low_movement = "Unknown"
+    impact_window_status = "Unknown"
 
     # ----------------------------
     # Core 1) Direction to low (NH rule of thumb)
@@ -427,29 +512,41 @@ def estimate_low_properties(
     # Core 3) Wind trend from history (delta over window)
     # ----------------------------
     delta_kn = _wind_delta_knots(wind_speed_history_kn)
+    wind_outlook = None
 
     if delta_kn is None:
         wind_trend = "Stable/unknown"
         conf_wind = "low"
     else:
         if delta_kn <= -5:
-            wind_trend = "Decreasing a lot"
+            wind_trend = "Decreased a lot"
         elif delta_kn <= -2:
-            wind_trend = "Decreasing"
+            wind_trend = "Decreased"
         elif delta_kn < 2:
             wind_trend = "Stable"
         elif delta_kn < 5:
-            wind_trend = "Increasing"
+            wind_trend = "Increased"
         else:
-            wind_trend = "Increasing a lot"
+            wind_trend = "Increased a lot"
 
-        # bias: fast pressure fall makes increasing/stable more likely than decreasing
-        if pslope is not None and pslope < -0.5 and delta_kn > -2:
+        # Heuristic outlook: fast pressure fall often precedes strengthening winds.
+        # Keep wind_trend as an observed (history-based) classification; expose outlook separately.
+        if pslope is not None and pslope < -0.5:
             if wind_trend in ("Stable", "Stable/unknown"):
-                wind_trend = "Increasing (likely)"
-            elif wind_trend == "Increasing":
-                wind_trend = "Increasing a lot (likely)"
-
+                wind_outlook = "Wind likely to increase as pressure continues to fall."
+            elif wind_trend in ("Increased","Increased a lot"):
+                wind_outlook = "Wind likely to increase further as pressure continues to fall."
+        elif pslope is not None and pslope >= -0.5 and pslope <= 0.5:
+            if delta_kn < 1:
+                wind_outlook = "Wind likely to be stable."
+            else:
+                wind_outlook = "Wind likely to be almost stable."
+        elif pslope is not None and pslope > 0.5:
+            if wind_trend in ("Stable", "Stable/unknown","Decreased","Decreased a lot"):
+                wind_outlook = "Wind likely to decrease as pressure continues to rise."
+        else:
+            wind_outlook = "Wind confusing, keep an eye out."
+#        wind_outlook += f"(Pslope: {pslope}, trend: {wind_trend})."
         conf_wind = "medium"
     confidence = _combine_confidence(conf_dir, conf_dist, conf_wind)
 
@@ -458,38 +555,107 @@ def estimate_low_properties(
     # ----------------------------
     weather_trend = _derive_weather_trend(distance_class, wind_trend)
 
-    impact = _IMPACT_MAP.get(distance_class)
-    if impact is None:
-        time_to_impact, time_to_impact_range = "Unknown", "Unknown"
-    else:
-        time_to_impact, time_to_impact_range = impact
+    # Relative position / movement (accounts for the common W→E drift of lows)
+    low_relative_position, low_movement, impact_window_status = _derive_relative_position_and_movement(
+        low_compass, pslope, distance_class, wind_trend
+    )
 
+    # Impact window logic:
+    # - If the low is receding (often already to the east + pressure rising), the impact is in the past.
+    # - If we're near a passage, impact is 'now'.
+    # - Otherwise fall back to distance-based timing buckets.
+    if impact_window_status == "Passed":
+        time_to_impact, time_to_impact_range = "Passed", "already passed"
+        # If we were calling this 'deteriorating' purely from distance class, soften it.
+        if weather_trend in ("Deteriorating", "Rapidly deteriorating"):
+            weather_trend = "Improving"
+    elif impact_window_status == "Now":
+        time_to_impact, time_to_impact_range = "Now", "now / next 1–2 hours"
+    else:
+        impact = _IMPACT_MAP.get(distance_class)
+        if impact is None:
+            time_to_impact, time_to_impact_range = "Unknown", "Unknown"
+        else:
+            time_to_impact, time_to_impact_range = impact
     wind_rotation_likely = _derive_wind_rotation_likely(distance_class, wdir_delta)
 
     frontal_zone = _derive_frontal_zone(distance_class, pslope, wind_trend)
-    # Human-readable summary (used as attribute in HA)
-    summary = (
-        f"Low to {low_compass} ({low_deg:.0f}°), "
-        + (f"{distance_class.lower()} ({km_range}). " if distance_class != "Unknown" else "unknown distance. ")
-        + f"Outlook: {weather_trend}. "
-        + f"Impact window: {time_to_impact_range} ({_confidence_text(confidence)}). "
-        + (
-            "Wind trend unknown."
-            if delta_kn is None
-            else f"Wind {wind_trend.lower()} (Δ {'+' if delta_kn >= 0 else ''}{delta_kn:.1f} kn)."
-        )
-        + (
-            f" Rotation: {wind_rotation_likely}."
-            if wind_rotation_likely and wind_rotation_likely != "Uncertain"
-            else (" Rotation: uncertain." if wind_rotation_likely else "")
-        )
-        + (" Frontal zone likely." if frontal_zone else "")
-        + (f" Anchor: {anchoring_risk}." if anchoring_risk else "")
-    ).strip()
-
-
     anchoring_risk = _derive_anchoring_risk(distance_class, wind_trend)
 
+    # Human-readable summary (used as attribute in HA)
+    parts: list[str] = []
+
+    parts.append(f"Low to the {low_relative_position.lower()} ({low_deg:.0f}°), ")
+    if distance_class != "Unknown":
+        parts.append(f"distance {km_range}, {low_movement.lower()}.")
+#        parts.append(f"distance {distance_class.lower()} ({km_range}), {low_movement.lower()}.")
+    else:
+        parts.append("Distance: unknown.")
+
+#    if low_relative_position != "Unknown" or low_movement != "Unknown":
+#        parts.append(f"Relative to you: {low_relative_position.lower()}, {low_movement.lower()}.")
+
+    # Main weather impact timing (human readable)
+    if impact_window_status == "Passed":
+         parts.append(
+             "Main weather from this system has passed, conditions are improving."
+         )
+    elif impact_window_status == "Now":
+            parts.append(
+                "Main impact from this system is occurring now or is imminent, "
+                "expect the worst conditions in the next 1–2 hours."
+            )
+    elif impact_window_status == "Future":
+        # Distinguish near-term vs far-term using the existing time_to_impact_range
+        if time_to_impact_range in ("< 3 hours", "3–6 hours", "6–12 hours"):
+            parts.append(
+                f"Weather is deteriorating, main impact from this system is expected within {time_to_impact_range}. "
+                "Prepare for worsening conditions."
+            )
+        else:
+            parts.append(
+                "A low pressure system is present but still far away. "
+                "No significant impact is expected in the next 12–24 hours."
+            )
+    else:
+        parts.append(
+            "Weather situation is unclear. Signals are mixed; monitor pressure and wind trends closely."
+        )
+    
+    # Pressure trend
+    if pslope is not None:
+        if abs(pslope) < 0.10:
+            parts.append("Pressure: roughly steady.")
+        elif pslope < 0:
+            parts.append(f"Pressure: falling ({pslope:.2f} hPa/hr).")
+        else:
+            parts.append(f"Pressure: rising (+{pslope:.2f} hPa/hr).")
+
+    # Wind
+    if wspd is None:
+        parts.append("Current wind: unknown.")
+    else:
+        wind_clause = f"Current wind: {wspd:.0f} kn"
+        if delta_kn is None:
+            wind_clause += f" ({wind_trend.lower()})."
+        else:
+            wind_clause += f", {wind_trend.lower()} (Δ {'+' if delta_kn >= 0 else ''}{delta_kn:.1f} kn)."
+        parts.append(wind_clause)
+        parts.append(wind_outlook)
+
+    if wind_rotation_likely:
+        if wind_rotation_likely not in ("Uncertain", "Unknown"):
+            parts.append(f"Likely direction change: {wind_rotation_likely.lower()}.")
+        else:
+            parts.append("Likely direction change: uncertain.")
+
+    if frontal_zone:
+        parts.append("Frontal zone likely.")
+
+    if anchoring_risk:
+        parts.append(f"Anchoring risk: {anchoring_risk}.")
+
+    summary = " ".join(parts).strip()
     return LowEstimate(
         low_bearing_deg=round(low_deg, 1),
         low_bearing_compass=low_compass,
@@ -507,6 +673,9 @@ def estimate_low_properties(
         wind_dir_delta_deg=round(wdir_delta, 1) if wdir_delta is not None else None,
         frontal_zone=frontal_zone,
         anchoring_risk=anchoring_risk,
+        low_relative_position=low_relative_position,
+        low_movement=low_movement,
+        impact_window_status=impact_window_status,
         summary=summary,
     )
 
@@ -630,10 +799,21 @@ async def async_estimate_low_properties(
     # ----------------------------
     # 5) Run the pure estimator and return the result
     # ----------------------------
+    # Determine hemisphere (Buys-Ballot differs across the equator).
+    # Prefer explicit latitude argument; otherwise fall back to HA config latitude if available.
+    lat = latitude
+    if lat is None:
+        try:
+            lat = float(getattr(hass.config, "latitude", None))
+        except (TypeError, ValueError):
+            lat = None
+    hem = "south" if (lat is not None and lat < 0) else "north"
+
     return estimate_low_properties(
         wind_from_deg=wind_from_deg,
         pressure_slope_hpa_per_hr=pslope,
         wind_speed_kn=wind_speed_kn,
         wind_speed_history_kn=wind_speed_vals,
         wind_dir_delta_deg=wind_dir_delta,
+        hemisphere=hem,
     )
