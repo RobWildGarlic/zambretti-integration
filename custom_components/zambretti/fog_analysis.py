@@ -1,10 +1,6 @@
 """ Analyze humidity an temperature, establish chance of fog """
 
 from .helpers import safe_float
-import math
-
-import logging
-_LOGGER = logging.getLogger(__name__)
 
 import math
 import logging

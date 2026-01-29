@@ -1,18 +1,129 @@
-from datetime import timedelta, datetime
-import numpy as np
-
-from .dictionaries import MONTHLY_NORMALS_BY_REGION
-
+from datetime import datetime
 from homeassistant.components.recorder import history
 from homeassistant.util import dt as dt_util
+
+from datetime import timedelta
+import numpy as np
+import calendar
+
 from .helpers import safe_float
+from .dictionaries import MONTHLY_NORMALS_BY_REGION
 
 import logging
 _LOGGER = logging.getLogger(__name__)
 #_LOGGER.setLevel(logging.DEBUG)  # Or use logging.INFO for less verbosity
 
 
-async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
+async def generate_pressure_forecast_advanced(
+    hass,
+    entity_id,
+    current_pressure,
+    region,
+    short=False
+    ):
+
+    # Monthly averages (should be defined outside function ideally)
+    region_normals = MONTHLY_NORMALS_BY_REGION.get(region)
+
+
+    if not region_normals:
+        return f"❌ Region '{region}' not found in pressure normals."
+
+    # Get month here, no pass as variable
+    month = datetime.now().month
+    month_name = calendar.month_abbr[month]  # 'Apr'
+    
+    # Get normal pressure for this month and region
+    normal = region_normals.get(month, 1015)
+    anomaly = current_pressure - normal
+    
+    # Classify anomaly
+    if anomaly > 5:
+        pressure_context = "Unusually high — very stable"
+    elif anomaly > 2:
+        pressure_context = "Slightly above average — settled"
+    elif anomaly > -2:
+        pressure_context = "Near seasonal average — normal variability"
+    elif anomaly > -5:
+        pressure_context = "Below average — increasing instability"
+    else:
+        pressure_context = "Unusually low — stormy pattern likely"
+
+    # Get pressure trends in hPa/hr
+    trend_3h  = await get_trend(hass, entity_id, 3)
+    trend_6h  = await get_trend(hass, entity_id, 6)
+    trend_12h = await get_trend(hass, entity_id, 12)
+
+    # Trend classification
+    def classify_trend(trend):
+        if trend > 1.0:
+            return "↑↑↑ (rising rapidly)"
+        elif trend > 0.5:
+            return "↑↑ (rising fast)"
+        elif trend > 0.1:
+            return "↑ (rising)"
+        elif trend > -0.1:
+            return "→ (steady)"
+        elif trend > -0.5:
+            return "↓ (falling)"
+        elif trend > -1.0:
+            return "↓↓ (falling fast)"
+        else:
+            return "⬇⬇⬇ (plummeting)"
+
+    trend_labels = {
+        "3h": classify_trend(trend_3h),
+        "6h": classify_trend(trend_6h),
+        "12h": classify_trend(trend_12h),
+    }
+
+    # Forecast summary & warning level
+    if trend_3h < -1.0:
+        trend_summary = "Pressure is plummeting — very likely a storm or squall incoming."
+        warning_level = 5
+    elif trend_3h < -0.5 and trend_6h < -0.5 and trend_12h < -0.5:
+        trend_summary = "Consistent strong fall — stormy or worsening weather is very likely."
+        warning_level = 4
+    elif trend_3h > 0.5 and trend_6h > 0.5 and trend_12h > 0.5:
+        trend_summary = "Strong and consistent rise — improving and settled weather."
+        warning_level = 1
+    elif trend_3h < 0 and trend_6h > 0 and trend_12h > 0:
+        trend_summary = "Short-term drop in a rising trend — weather likely stabilizing after a dip."
+        warning_level = 2
+    elif trend_3h > 0 and trend_6h < 0 and trend_12h < 0:
+        trend_summary = "Short-term rise in a falling pattern — possible temporary improvement."
+        warning_level = 3
+    elif -0.1 < trend_3h < 0.1 and -0.1 < trend_6h < 0.1 and -0.1 < trend_12h < 0.1:
+        trend_summary = "Pressure is steady across all windows — stable conditions."
+        warning_level = 2 if anomaly < -2 else 1
+    else:
+        trend_summary = "Mixed pressure trends — potential instability or transition."
+        warning_level = 3 if anomaly < -2 else 2
+
+    if short:
+        # Short summary, under 255 characters
+        return (
+            f"{current_pressure:.1f} hPa ({anomaly:+.1f} vs norm) — "
+            f"{trend_labels['3h']}/{trend_labels['6h']}/{trend_labels['12h']} — "
+            f"{trend_summary} [Level {warning_level}/5]"
+        )[:255]
+
+    # Full forecast
+    # Compose result
+    forecast = (
+        f"🧭 Current pressure: {current_pressure:.1f} hPa\n"
+        f"📊 Pressure vs {region.title()} {month_name} normal ({normal} hPa): {anomaly:+.1f} hPa\n"
+        f"🌀 Pressure context: {pressure_context}\n\n"
+        f"📉 3h trend: {trend_labels['3h']} ({trend_3h:+.2f} hPa/hr)\n"
+        f"📉 6h trend: {trend_labels['6h']} ({trend_6h:+.2f} hPa/hr)\n"
+        f"📉 12h trend: {trend_labels['12h']} ({trend_12h:+.2f} hPa/hr)\n\n"
+        f"🗺️ Forecast: {trend_summary}\n"
+        f"⚠️ Warning Level: {warning_level}/5"
+    )
+
+    return forecast
+    
+async def get_trend(hass, entity_id, trend_duration):
     """Fetches historical pressure data, analyzing strongest rising or falling trend."""
 
     # Set the maximum deviation to switch from straight line analysis to U-shaped analysis
@@ -22,8 +133,7 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
 
 
     # Fixed interval of 15 minutes, 12 samples over 3 hours
-    hours_to_read = safe_float(pressure_history_hours)
-#    pressure_history_hours = 3 if pressure_history_hours == 0 else safe_float(pressure_history_hours)
+    hours_to_read = safe_float(trend_duration)
     time_interval_minutes = 15  
     num_intervals = (60 / time_interval_minutes) * hours_to_read
 
@@ -116,53 +226,5 @@ async def determine_pressure_trend(hass, entity_id, pressure_history_hours):
         method_used = "Straight-line"
         # Convert slope to hPa per hour
         slope = slope * (3600)  
-        
-    # Determine the trend, looking at the slope
-    if slope >= 2.0:
-        trend = "rising_fast"
-    elif slope >= 0.5:
-        trend = "rising"
-    elif slope > -0.5:
-        trend = "steady"
-    elif slope > -2.0:
-        trend = "falling"
-    elif slope > -4.0:
-        trend = "falling_fast"
-    else:
-        trend = "plummeting"        
-
-    # Create the pressure forecast
-    d_trend = trend.replace("_", " ").title()
-    plus_minus = "±"
-    if round(slope, 1) > 0:
-        plus_minus = "+"
-    elif round(slope, 2) < 0:
-        plus_minus = "-"
     
-    analysis = f"{d_trend} pressure, {plus_minus}{abs(round(slope,1))}/hr"
-
-    return trend, slope, analysis, len(history_data[entity_id]), method_used, avg_deviation
-    
-def get_normal_pressure(region: str, month: int = None) -> int:
-    """
-    Retrieve the normal monthly pressure for a given region and month.
-
-    :param region: The region name (e.g., 'azores').
-    :param month: The month as an integer (1 = January, ..., 12 = December).
-                  If not provided, the current month is used.
-    :return: The normal pressure value in hPa.
-    :raises ValueError: If the region or month is invalid.
-    """
-    if month is None:
-        month = datetime.now().month
-
-#    region = region.lower()
-
-    if region not in MONTHLY_NORMALS_BY_REGION:
-        raise ValueError(f"Unknown region: '{region}'")
-    if month not in range(1, 13):
-        raise ValueError(f"Invalid month: {month} (must be between 1 and 12)")
-
-    return MONTHLY_NORMALS_BY_REGION[region][month]
-
- 
+    return slope

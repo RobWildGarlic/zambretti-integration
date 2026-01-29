@@ -7,7 +7,7 @@ from .wind_analysis import determine_wind_direction
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperature):
+async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperature, normal_pressure):
     """Determines the general forecast based on pressure, pressure trend, and temperature."""
 
     icon = "mdi:zend"
@@ -26,17 +26,18 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
     _LOGGER.debug(f"ZF temp_modifier: {temp_modifier}")
     _LOGGER.debug(f"ZF trend: {trend}")
     _LOGGER.debug(f"ZF pressure: {pressure}")
+    
      
     
     # Apply Zambretti Forecasting Logic
     forecast = ""
     if trend == 'rising':
-        if pressure > 1020:
+        if pressure > normal_pressure + 5:
             forecast += "Clear(ish) skies, little to no rain, mild temperatures"
             icon = ICON_MAPPING[0][0]
             alert_level = max(0, alert_level + temp_modifier)  # Reduce alert if cold
             estimated_wind_speed = max(5, current_wind_speed - 3)
-        elif pressure > 1010:
+        elif pressure > normal_pressure - 5:
             forecast += "Stable, calm, and pleasant weather, possible light clouds"
             icon = ICON_MAPPING[1][0]
             alert_level = max(0, alert_level + temp_modifier)
@@ -48,12 +49,12 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             estimated_wind_speed = max(10, current_wind_speed)
 
     elif trend == 'steady':
-        if pressure > 1020:
+        if pressure > normal_pressure + 5:
             forecast += "Continued fair, calm and predictable weather"
             icon = ICON_MAPPING[0][0]
             alert_level = max(0, alert_level + temp_modifier)
             estimated_wind_speed = max(5, current_wind_speed)  # 5-12 knots, light breeze
-        elif pressure > 1010:
+        elif pressure > normal_pressure - 5:
             forecast += "Fair weather with occasional clouds"
             icon = ICON_MAPPING[1][0]
             alert_level = max(0, alert_level + temp_modifier)
@@ -65,12 +66,12 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             estimated_wind_speed = max(12, current_wind_speed + 3)  # 12-18 knots
 
     elif trend == 'falling':
-        if pressure > 1020:
+        if pressure > normal_pressure + 5:
             forecast += "Possible deterioration, watch for winds"
             icon = ICON_MAPPING[2][0]
             alert_level = max(1, alert_level + temp_modifier)
             estimated_wind_speed = max(15, current_wind_speed + 5)
-        elif pressure > 1010:
+        elif pressure > normal_pressure - 5:
             forecast += "Changeable weather, gusty winds, increasing cloud cover"
             icon = ICON_MAPPING[4][0]
             alert_level = max(2, alert_level + temp_modifier)
@@ -84,12 +85,12 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             estimated_wind_speed = max(25, current_wind_speed + 12)
 
     elif trend == 'falling_fast':
-        if pressure > 1005:
+        if pressure > normal_pressure - 10:
             forecast += "Windy, rain likely"
             icon = ICON_MAPPING[4][0]
             alert_level = max(3, alert_level + temp_modifier)
             estimated_wind_speed = max(25, current_wind_speed + 12)
-        elif pressure > 990:
+        elif pressure > normal_pressure - 15:
             forecast += "Strong winds, rain, possible squalls"
             if temperature < 0:
                 forecast += " ❄️ Snowstorm possible"
@@ -103,14 +104,14 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             estimated_wind_speed = max(40, current_wind_speed + 25)
 
     elif trend == 'plummeting':
-        if pressure > 1005:
+        if pressure > normal_pressure - 10:
             forecast += "Strong winds, thunderstorms, possible storm system"
             if temperature < 0:
                 forecast += "Blizzard conditions possible."
             icon = ICON_MAPPING[6][0]
             alert_level = max(4, alert_level + temp_modifier)
             estimated_wind_speed = max(30, current_wind_speed + 20)
-        elif pressure > 990:
+        elif pressure > normal_pressure - 15:
             forecast += "Low pressure. Major storm system, possible gale-force winds"
             icon = ICON_MAPPING[7][0]
             alert_level = max(5, alert_level + temp_modifier)
@@ -126,3 +127,4 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
     estimated_max_wind_speed = round(safe_float(estimated_wind_speed) * 1.2)
 
     return forecast, icon, alert_level, estimated_wind_speed, estimated_max_wind_speed 
+

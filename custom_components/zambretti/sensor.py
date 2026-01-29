@@ -210,6 +210,9 @@ class Zambretti(SensorEntity):
             "low_weather_trend": None,
             "low_time_to_impact": None,
             "low_time_to_impact_range": None,
+            "low_relative_position": None,
+            "low_movement": None,
+            "impact_window_status": None,
             "low_wind_rotation_likely": None,
             "low_wind_dir_delta_deg": None,
             "low_frontal_zone": None,
@@ -483,10 +486,14 @@ class Zambretti(SensorEntity):
             "low_wind_trend_class": low.wind_trend,
             "low_wind_trend_delta_kn": low.wind_delta_kn if low.wind_delta_kn is not None else "Unknown",
             "low_estimate_confidence": low.confidence,
-            # NEW: 1,2,3,5,6
             "low_weather_trend": low.weather_trend,
+
+            "low_relative_position": low.low_relative_position,
+            "low_movement": low.low_movement,
+            "impact_window_status": low.impact_window_status,
             "low_time_to_impact": low.time_to_impact,
             "low_time_to_impact_range": low.time_to_impact_range,
+
             "low_wind_rotation_likely": low.wind_rotation_likely,
             "low_wind_dir_delta_deg": low.wind_dir_delta_deg if low.wind_dir_delta_deg is not None else "Unknown",
             "low_frontal_zone": low.frontal_zone if low.frontal_zone is not None else "Unknown",
