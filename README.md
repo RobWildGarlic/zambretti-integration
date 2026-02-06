@@ -162,7 +162,7 @@ If your instruments provide other units (pressure in inches of mercury inHg, tem
 
 **Tip** Use ChatGPT to provide you with the template, ask it:
 ```jinja2
-Create a HA helper template to convert inHg to hPa. The input sensor is 'sensor.pressure'. 
+Create a HA helper template to convert inHg to hPa. The input sensor is 'sensor.pressure'.
 ```
 
 ## What sensors?
@@ -174,7 +174,7 @@ For wind direction, wind speed and compass heading I use the appropriate integra
 ## Wait for Zambretti to have started up
 The Zambretti integration needs all it's sensors to be on-line before it does anything. On some sensors that may take a while. That means using Zambretti sensor data *may* cause errors while starting up Home Assistant - all attributes are 'Unknown'. To that end Zambretti has the attribute `fully_started`. Only if that is `true` can you rely on the sensor data. As an example below the first line for the Markdown card caters for that. It also means that you would be wise to use that attribute in an automation in the `And if (optional)` section to stop the automation from running if Zambretti is not ready yet.
 ## Example for your dashboard
-There is a lot available but I like to present it in a **Markdown card**. That way I have the Zambretti forecast with the wind system, fog chance and temperature warning all in one card. 
+There is a lot available but I like to present it in a **Markdown card**. That way I have the Zambretti forecast with the wind system, fog chance and temperature warning all in one card.
 
 <img src="https://columbusgoes.digital/zambretti/example1.png" alt="example1" width="50%"/>
 
@@ -188,7 +188,7 @@ The content for the Markdown card:
 ***
 <b>Based on {{state_attr('sensor.zambretti_forecast','cfg_pressure_history_hours') }}hr atmospheric pressure @{{state_attr('sensor.zambretti_forecast','last_updated') }}:</b>
 
-{{ states('sensor.zambretti_forecast') }}  
+{{ states('sensor.zambretti_forecast') }}
 
 ***
 <b>Possible wind systems (current wind {{ state_attr('sensor.zambretti_forecast','wind_direction')}}):</b>
@@ -218,18 +218,18 @@ To display multiple forecasts add a second etc. forecast by adding (use your own
 ```jinja2
 <b>Based on {{state_attr('sensor.zambretti_forecast_6hr','cfg_pressure_history_hours') }}hr atmospheric pressure:</b>
 
-{{ states('sensor.zambretti_forecast_6hr') }} 
- 
+{{ states('sensor.zambretti_forecast_6hr') }}
+
 ```
 
 ## Add a nice pressure graph
 I like to have an Atmospheric Pressure graph near (directly under) the Zambretti Forecast. The `Statistics Graph Card` automatically adjusts the scale. As a consequence a minimal change in pressure may be displayed as a nightmare in the making. That is just confusing, I don't linke it.
 To prevent this change the following in the card:
-- `Y-axis minimum` = 1003, 
-- `y-axis maximum` = 1023 (1013 is the world average pressure), 
-- `Extend Y axis limits to fit data` to `on`. 
+- `Y-axis minimum` = 1003,
+- `y-axis maximum` = 1023 (1013 is the world average pressure),
+- `Extend Y axis limits to fit data` to `on`.
 
-That way it won't cause a panic when there is nothing much going on while still changing the scale automatically if required. 
+That way it won't cause a panic when there is nothing much going on while still changing the scale automatically if required.
 
 <img src="https://columbusgoes.digital/zambretti/example2.png" alt="example2" width="50%"/>
 
@@ -237,8 +237,8 @@ If you want to you can change the `Days to show` using decimals: 0.125 days is .
 
 ## Automations and Voice
 And of course if alert_level changes to 4 or 5 I have my Voice-PE warning me of impending doom. You'll need an automation.
-Most of the data is not in the entity state but in it's attributes. To use them for a trigger ('When') in an automation 
-- choose `Template` in `Add trigger` dialog 
+Most of the data is not in the entity state but in it's attributes. To use them for a trigger ('When') in an automation
+- choose `Template` in `Add trigger` dialog
 - in `Value template` enter (keep the double quotes):
 
 ```jinja2
@@ -262,7 +262,7 @@ I hate it if an integration creates many sensors. I already have thousands. So Z
 {{ state_attr('sensor.zambretti_forecast','region') }}
 ```
 - Add other information as required (maybe Unit of Measurement `kn` for wind speed)
-- Submit. 
+- Submit.
 
 Done, you now have a new sensor, Home Assistant will build a history for it and you can use it anywhere.
 
@@ -272,7 +272,7 @@ You can force a new forecast by using the Zambretti Force Update service. That t
 
 So create a button on your dashboard and at 'Interactions' choose 'perform action'. Then look for and enter 'Zambretti force update'. If required enter the forecast sensor. Easy peasy!
 ## Performance
-Zambretti requires a lot from Home Assistant. It has to gather a lot to historic info on a lot of sensors. On a Raspberri Pi5 it takes a second to update. On a pi4 or pi3 etc. that will be more. So be careful with the update interval in setting up the Zambretti integration. 
+Zambretti requires a lot from Home Assistant. It has to gather a lot to historic info on a lot of sensors. On a Raspberri Pi5 it takes a second to update. On a pi4 or pi3 etc. that will be more. So be careful with the update interval in setting up the Zambretti integration.
 
 To help you get insight in Zambretti's system load it registers an 'Info' line in the system logs every time it updates the forecast. Go to System->Settings->Log, klik the three-dot menu end choose 'Show full logs'. Type 'Zambretti' in the search bar and you will see lines like:
 ```
@@ -293,7 +293,7 @@ From your local measurements it derives:
 
 -   **Low direction**:
     N, NE, E, SE, S, SW, W, NW
-    
+
 -   **Low distance (class + rough range)**:
     -   Far (> ~800 km)
     -   Distant (~400–800 km)
@@ -301,8 +301,8 @@ From your local measurements it derives:
     -   Near (~80–200 km)
     -   Very near (~30–80 km)
     -   Imminent (< ~30 km)
-        
-    
+
+
 
 
 ### **What is the wind doing?**
@@ -311,12 +311,12 @@ From your local measurements it derives:
     -   Decreasing
     -   Stable
         (with an extra flag if it’s changing  _strongly_)
-        
-    
+
+
 -   **Wind backing or veering**:
-    
+
     -   Turning clockwise or counter-clockwise, which is a classic sign of approaching or passing systems.
-        
+
 
 
 ### **What is the pressure doing?**
@@ -326,25 +326,25 @@ From your local measurements it derives:
     -   Stable
     -   Falling
         And how fast.
-        
-    
 
-  
+
+
+
 
 This is one of the most important storm indicators.
 
 ### **Overall weather trend (very useful!)**
 
-  
+
 
 A combined **Weather Trend Index**:
 -   Improving
 -   Stable
 -   Deteriorating
 -   Rapidly deteriorating
-    
 
-  
+
+
 
 This combines:
 -   Pressure trend
@@ -355,7 +355,7 @@ This combines:
 ### **Low movement direction**
 
 Shows in which  **direction the low is moving**  relative to you:
-    
+
    -   Towards you
     -   Passing north/south of you
     -   Moving away
@@ -372,11 +372,11 @@ This depends on:
 
 -   How clean and consistent your sensor data is
 -   How strong and clear the trends are
-    
+
 
 ## **Where do these values appear?**
 
-  
+
 
 All results are exposed as  **attributes**  of the weather / Zambretti sensor, for example:
 
@@ -390,9 +390,9 @@ All results are exposed as  **attributes**  of the weather / Zambretti sensor, f
 -   etc.
 
 low.summary holds a textual summary of the forecast based on low pressure system.
-    
 
-  
+
+
 
 You can use them in:
 
@@ -400,21 +400,21 @@ You can use them in:
 -   Automations
 -   Alerts (e.g. “Notify me if rapidly deteriorating + near”)
 -   Logging
-    
+
 
 
 
 ## **Important limitations**
 
 -   This is  **not**  a synoptic weather model.
-    
+
 -   It gives  **trend-based local intelligence**, not exact forecasts.
-    
+
 -   It works best when:
     -   You have good sensors
     -   You have at least several hours of history
     -   Weather is actually changing (not in dead calm high-pressure domes)
-  
+
 ## **In one sentence**
 
 > The Low Pressure Estimator turns your  **own sensors**  into a  **mini weather analyst**  that tells you  _if_,  _where_, and  _how fast_  bad weather is approaching.
@@ -428,7 +428,7 @@ This attribute contains a **complete, ready-to-use description of the current we
 -   The low-pressure analysis
 -   A 24-hour history of pressure, temperature, wind speed, and wind direction
 -   A pre-formatted instruction text for an AI weather assistant
-    
+
 This text is designed to be sent  **as-is**  to an AI system (such as ChatGPT or another LLM) to obtain a  **human-readable local weather forecast**.
 ## What Zambretti does (and does not do)
 Zambretti:
@@ -437,7 +437,7 @@ Zambretti:
 -   ✅ Keeps everything fully local and based on your own sensors
 -   ❌ Does  **not**  call any AI services itself
 -   ❌ Does  **not**  send any data to the internet
-    
+
 Connecting this to an AI (for example using Home Assistant’s  ai_task, a script, or an automation) is  **intentionally left to the user**. This is highly dependent on which AI service you use and is outside the scope of this manual.
 ## How to use it
 You can access the prompt text using this template:
@@ -447,9 +447,9 @@ This returns a long, structured text block that you can pass directly to your AI
 When constructing your AI prompt:
 
 1.  **First write what you want the AI to do**, for example:
-    
+
     > “You are a local weather forecaster. Based only on the following data, give a 12-hour forecast and a 24-hour outlook.”
-    
+
 2.  **Then append the Zambretti prompt attribute**, for example:
     > You are a local weather forecaster. Based only on the following data, give a 12-hour forecast and a 24-hour outlook.
 {{ state_attr('sensor.zambretti_forecast', 'ai_prompt') }}
@@ -467,9 +467,9 @@ When constructing your AI prompt:
 > The AI turns it into a  **human explanation**.
 # How useful is Zambretti?
 A reasonable forecast window for Zambretti barometer-based weather prediction is up to 12 to 24 hours.
-Note: there are two types of window: 
-- the past, for analysis and to create the forecast, 
-- and the future, the forecast. 
+Note: there are two types of window:
+- the past, for analysis and to create the forecast,
+- and the future, the forecast.
 
 This paragraph is about the latter.
 
@@ -642,9 +642,9 @@ Using Home Assistant recorder Zambretti determines:
 - the average wind speed over the last 10 minutes
 
 ### Pressure analysis
-Pressure analysis uses Home Assistant recorder to determine if the atmospheric pressure is rising or falling over the last 3 hours (you can change that in the `Configuration` dialog to 6, 9 or 12 hours), and how fast. Resulting values can be rising_fast, rising, steady, falling, falling_fast or plummeting. 
-Measuring the pressure trend is harder that it seems. Looking at the pressure graph it is hardly ever a straight line over 3, 6, 9 or 12 hours. It is often, but not always, U-shaped or inverse U-shaped. 
-1. So first Zambretti draws a straight line regression. That works great if pressure is rising or falling steadily. If the deviation from this line is not too great, it will use this to determine the trend. 
+Pressure analysis uses Home Assistant recorder to determine if the atmospheric pressure is rising or falling over the last 3 hours (you can change that in the `Configuration` dialog to 6, 9 or 12 hours), and how fast. Resulting values can be rising_fast, rising, steady, falling, falling_fast or plummeting.
+Measuring the pressure trend is harder that it seems. Looking at the pressure graph it is hardly ever a straight line over 3, 6, 9 or 12 hours. It is often, but not always, U-shaped or inverse U-shaped.
+1. So first Zambretti draws a straight line regression. That works great if pressure is rising or falling steadily. If the deviation from this line is not too great, it will use this to determine the trend.
 2. However, if the deviation from that straight line is too much, it switches to another method. That analyses the trend from a) the lowest and b) the highest pressure to the current pressure. The largest value wins and is used to calculate the pressure trend in hPa movement per hour. Thus on U-shaped pressure graphs is tries to use only the most recent 'leg' of the 'U' as that is most informative for forecasting.
 
 **Example Scenarios & Expected Results**
@@ -664,7 +664,7 @@ A sharp drop in temperature may indicate bad weather. Temperature analisys looks
 The Zambretti forecast is generated using the pressure analysis, average wind speed and current temperature to create a forecast and an alert level. It does this by:
 - looking at pressure and pressure trend by first determining trend and within trend looking at the pressure.
 - correcting for low and high temperatures to modify the alert level. High temperatures mean a higher alert level and vice versa
-- using current average wind speed and pressure analysis to forecast the windspeed as a 'from - to' (using a 20% low and high margin) to cover for uncertainty. 
+- using current average wind speed and pressure analysis to forecast the windspeed as a 'from - to' (using a 20% low and high margin) to cover for uncertainty.
 
 ### Fog analysis
 Analysing temperature, humidity and average wind speed Zambretti determines the likelyhood of fog. It does that by using the Magnus-Tetens approximation to calculate the dew point and comparing that dew point to the current temperature. It accounts for wind blowing away the fog, and for high and low temperatures making fog likelier or unlikelier. It then adapts for fog likelihood in your area by using the `fog_area_type` in the integration configuration.
@@ -719,13 +719,13 @@ In other words, in Sicily, North wind:
 
 If no wind system is applicable, the default is used for wind N and region Mediterranean Southwest.
 
-## Can you add to the wind system catalogues? 
+## Can you add to the wind system catalogues?
 
-Yeah! Sure! The more the merrier. Just let me know through github so I can make everyone else enjoy the fruits of your labour. Use the above format to do this so I can copy-paste for an update. You can use ChatGPT (or another AI) to help you, provided you manage to ask it the right questions. Example: 
+Yeah! Sure! The more the merrier. Just let me know through github so I can make everyone else enjoy the fruits of your labour. Use the above format to do this so I can copy-paste for an update. You can use ChatGPT (or another AI) to help you, provided you manage to ask it the right questions. Example:
 ```
-Can you add the Indian Ocean to the table below: "british_isles": (49, 61, -12, 2, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"), 
+Can you add the Indian Ocean to the table below: "british_isles": (49, 61, -12, 2, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),
 ```
 
 Check the result, ChatGPT regularly makes the stupidest of errors.
- 
+
  -/-

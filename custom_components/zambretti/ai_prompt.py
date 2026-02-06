@@ -2,16 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from datetime import datetime, timedelta
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timedelta
+from typing import Any
 
+# Recorder history function (sync) - run via hass.async_add_executor_job
+from homeassistant.components.recorder.history import state_changes_during_period
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
-
-# Recorder history function (sync) – run via hass.async_add_executor_job
-from homeassistant.components.recorder.history import state_changes_during_period
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -19,7 +17,7 @@ DEFAULT_HISTORY_HOURS = 24
 DEFAULT_SAMPLE_MINUTES = 60  # hourly samples, keeps attribute size reasonable
 
 
-def _safe_float(v: Any) -> Optional[float]:
+def _safe_float(v: Any) -> float | None:
     try:
         if v is None:
             return None
@@ -31,7 +29,7 @@ def _safe_float(v: Any) -> Optional[float]:
         return None
 
 
-def _state_str(v: Any) -> Optional[str]:
+def _state_str(v: Any) -> str | None:
     if v is None:
         return None
     s = str(v).strip()
@@ -50,7 +48,7 @@ def _history_sync(
     entity_id: str,
     start: datetime,
     end: datetime,
-) -> List[Any]:
+) -> list[Any]:
     """Fetch raw state history (sync). Returns list of State objects."""
     try:
         # state_changes_during_period returns dict: { entity_id: [State, State, ...] }
@@ -62,12 +60,12 @@ def _history_sync(
 
 
 def _build_hourly_samples(
-    raw_states: List[Any],
+    raw_states: list[Any],
     start: datetime,
     end: datetime,
     sample_minutes: int,
     numeric: bool,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Downsample raw recorder states into regular samples.
     Strategy: for each sample time, pick the latest state at or before that time.
@@ -81,12 +79,12 @@ def _build_hourly_samples(
 
     states_sorted = sorted(raw_states, key=_state_time)
 
-    samples: List[Dict[str, Any]] = []
+    samples: list[dict[str, Any]] = []
     t = start
 
     idx = 0
-    last_value: Optional[Any] = None
-    last_time: Optional[datetime] = None
+    last_value: Any | None = None
+    last_time: datetime | None = None
 
     # Move idx forward while state_time <= t, so last_value is "latest at or before t"
     while t <= end:
@@ -111,7 +109,7 @@ def _build_hourly_samples(
     return samples
 
 
-def _fmt_series(series: List[Dict[str, Any]], unit: str = "") -> str:
+def _fmt_series(series: list[dict[str, Any]], unit: str = "") -> str:
     """Format a series for inclusion in the prompt."""
     if not series:
         return "- (no data)\n"
@@ -119,18 +117,15 @@ def _fmt_series(series: List[Dict[str, Any]], unit: str = "") -> str:
     lines = []
     for p in series:
         v = p["v"]
-        if isinstance(v, float):
-            # keep compact
-            v_str = f"{v:.1f}"
-        else:
-            v_str = str(v)
+        v_str = f"{v:.1f}" if isinstance(v, float) else str(v)
         lines.append(f"- {p['t']}: {v_str}{unit}")
     return "\n".join(lines) + "\n"
 
 
-def _get_attr(attrs: Dict[str, Any], key: str) -> Any:
-    return attrs.get(key, None)
-    
+def _get_attr(attrs: dict[str, Any], key: str) -> Any:
+    return attrs.get(key)
+
+
 def _human_time(dt: datetime) -> str:
     now = dt_util.now()
 
@@ -163,16 +158,16 @@ async def build_ai_prompt(
     hass: HomeAssistant,
     *,
     # entity_ids for history
-    pressure_entity_id: Optional[str],
-    temperature_entity_id: Optional[str],
-    wind_speed_entity_id: Optional[str],
-    wind_direction_entity_id: Optional[str],
+    pressure_entity_id: str | None,
+    temperature_entity_id: str | None,
+    wind_speed_entity_id: str | None,
+    wind_direction_entity_id: str | None,
     # current zambretti attributes (already computed in sensor.py)
-    z_attrs: Dict[str, Any],
+    z_attrs: dict[str, Any],
     # prompt settings
     history_hours: int = DEFAULT_HISTORY_HOURS,
     sample_minutes: int = DEFAULT_SAMPLE_MINUTES,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Returns:
       {
@@ -190,8 +185,10 @@ async def build_ai_prompt(
     start = now - timedelta(hours=history_hours)
 
     # Fetch histories (sync recorder call -> executor)
-    async def fetch(entity_id: str) -> List[Any]:
-        return await hass.async_add_executor_job(_history_sync, hass, entity_id, start, now)
+    async def fetch(entity_id: str) -> list[Any]:
+        return await hass.async_add_executor_job(
+            _history_sync, hass, entity_id, start, now
+        )
 
     raw_pressure = await fetch(pressure_entity_id) if pressure_entity_id else []
     raw_temp = await fetch(temperature_entity_id) if temperature_entity_id else []
@@ -199,14 +196,20 @@ async def build_ai_prompt(
     raw_wd = await fetch(wind_direction_entity_id) if wind_direction_entity_id else []
 
     # Build sampled series
-    pressure_series = _build_hourly_samples(raw_pressure, start, now, sample_minutes, numeric=True)
-    temp_series = _build_hourly_samples(raw_temp, start, now, sample_minutes, numeric=True)
+    pressure_series = _build_hourly_samples(
+        raw_pressure, start, now, sample_minutes, numeric=True
+    )
+    temp_series = _build_hourly_samples(
+        raw_temp, start, now, sample_minutes, numeric=True
+    )
     ws_series = _build_hourly_samples(raw_ws, start, now, sample_minutes, numeric=True)
 
     # Wind direction may be numeric degrees or cardinal; keep as string but allow numeric if it parses.
-    wd_series_raw = _build_hourly_samples(raw_wd, start, now, sample_minutes, numeric=False)
+    wd_series_raw = _build_hourly_samples(
+        raw_wd, start, now, sample_minutes, numeric=False
+    )
     # try to coerce v into float if it looks numeric, else keep string
-    wd_series: List[Dict[str, Any]] = []
+    wd_series: list[dict[str, Any]] = []
     for p in wd_series_raw:
         fv = _safe_float(p["v"])
         wd_series.append({"t": p["t"], "v": fv if fv is not None else p["v"]})
@@ -221,7 +224,6 @@ async def build_ai_prompt(
 
     # Pull the main “current/derived” values from z_attrs (best effort; missing is OK)
     region = _get_attr(z_attrs, "region")
-    wind_system = _get_attr(z_attrs, "wind_system")
 
     prompt = f"""## Context
 - Region: {region}

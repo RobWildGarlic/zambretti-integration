@@ -1,8 +1,9 @@
-from .helpers import safe_float
+import logging
+
 from .dictionaries import REGIONS
 
-import logging
 _LOGGER = logging.getLogger(__name__)
+
 
 def determine_region(lat, lon):
     """Determine which region a location falls into and return the region name & URL."""
@@ -16,8 +17,9 @@ def determine_region(lat, lon):
             region_name = region.replace("_", " ")
             if region_name:
                 region_name = region_name[0].upper() + region_name[1:]
-            _LOGGER.debug(f"✅ Location ({lat}, {lon}) identified as {region}, url {url}.")
+            _LOGGER.debug(
+                f"✅ Location ({lat}, {lon}) identified as {region}, url {url}."
+            )
             return region, region_name, url
     _LOGGER.debug(f"✅ Location ({lat}, {lon}) no region.")
     return "unknown", "unknown", "none"
-

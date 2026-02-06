@@ -1,5 +1,7 @@
 """Zambretti Mediterranean Weather Forecast Integration."""
+
 import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
@@ -7,6 +9,7 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.ERROR)  # Or use logging.INFO for less verbosity
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the integration from a config entry."""
@@ -18,11 +21,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # ✅ Forward the entry setup to the sensor platform
     await hass.config_entries.async_forward_entry_setups(entry, ["sensor"])
     return True
-    
-async def update_listener(hass, entry):
+
+
+async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the integration when the config entry is updated."""
     _LOGGER.debug("✅ async_listener() called for Zambretti.")
     await hass.config_entries.async_reload(entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload the integration."""
@@ -31,4 +36,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
         return True
     return False
-    

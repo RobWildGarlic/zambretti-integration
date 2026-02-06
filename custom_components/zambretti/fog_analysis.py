@@ -1,17 +1,20 @@
-""" Analyze humidity an temperature, establish chance of fog """
+"""Analyze humidity an temperature, establish chance of fog"""
+
+import logging
+import math
 
 from .helpers import safe_float
 
-import math
-import logging
-
 _LOGGER = logging.getLogger(__name__)
 
-def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type="normal"):
+
+def determine_fog_chance(
+    p_humidity, p_temperature, p_wind_speed, fog_area_type="normal"
+):
     """Improved fog probability calculation with realistic adjustments for temperature & wind."""
 
     _LOGGER.debug(f"Startup: t={p_temperature}, h={p_humidity}, w={p_wind_speed}")
-    
+
     # Convert inputs to safe floats
     humidity = safe_float(p_humidity)
     temperature = safe_float(p_temperature)
@@ -27,7 +30,9 @@ def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type=
     alert_level = 0
 
     # Logging inputs
-    _LOGGER.debug(f"Calculating fog chance with Humidity: {humidity}%, Temperature: {temperature}°C, Wind Speed: {wind_speed} km/h")
+    _LOGGER.debug(
+        f"Calculating fog chance with Humidity: {humidity}%, Temperature: {temperature}°C, Wind Speed: {wind_speed} km/h"
+    )
 
     if humidity < 20:
         return "No chance of fog. Air is too dry.", 0, 0, 0, 0  # No fog possible.
@@ -40,15 +45,15 @@ def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type=
     temp_diff = round(temperature - dewpoint, 1)
 
     # **🔹 Updated Fog Probability Formula**
-    if temp_diff > 6:  
+    if temp_diff > 6:
         fog_probability = 0  # Fog nearly impossible
-    elif temp_diff > 3:  
+    elif temp_diff > 3:
         fog_probability = max(0, 100 - 15 * temp_diff)  # More aggressive reduction
     else:
-        fog_probability = max(0, 100 - 8 * temp_diff)   # Normal reduction
+        fog_probability = max(0, 100 - 8 * temp_diff)  # Normal reduction
 
     # **🔹 More Realistic Temperature Scaling**
-    if temperature > 35:  
+    if temperature > 35:
         fog_probability = 0  # Too hot for fog
     elif temperature > 30:
         fog_probability *= 0.1  # Almost no chance
@@ -71,10 +76,10 @@ def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type=
     # **Adjust Fog Probability Based on Location Type**
     fog_area_adjustments = {
         "frequent_dense_fog": 1.5,  # 50% increase
-        "fog_prone": 1.2,           # 20% increase
-        "normal": 1.0,              # No change
-        "rare_fog": 0.7,            # 30% decrease
-        "hardly_ever_fog": 0.4        # 60% decrease
+        "fog_prone": 1.2,  # 20% increase
+        "normal": 1.0,  # No change
+        "rare_fog": 0.7,  # 30% decrease
+        "hardly_ever_fog": 0.4,  # 60% decrease
     }
 
     # Apply location-based adjustment
@@ -82,7 +87,7 @@ def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type=
 
     # **🔹 Ensure probability remains between 0% and 100%**
     fog_probability = int(max(0, min(100, fog_probability)))
-    
+
     # **🔹 Adjust Fog Description Based on Probability**
     if fog_probability > 90:
         fog_likelihood = "Fog is very likely"
@@ -95,18 +100,21 @@ def determine_fog_chance(p_humidity, p_temperature, p_wind_speed, fog_area_type=
     else:
         fog_likelihood = "No fog expected"
 
-    diff_txt = f"{temp_diff}°C to dew point"
-    fog_dec_probability = round((fog_probability/10)) * 10
-#    fog_likelihood += f"({fog_dec_probability}% chance, {diff_txt})."
+    fog_dec_probability = round(fog_probability / 10) * 10
+    #    fog_likelihood += f"({fog_dec_probability}% chance, {diff_txt})."
 
     # **🔹 Additional Behavior Based on Wind**
     if fog_probability > 90:
-        fog_likelihood += f", trong winds soon clear it" if wind_speed > 15 else " It may persist"
+        fog_likelihood += (
+            ", trong winds soon clear it" if wind_speed > 15 else " It may persist"
+        )
         alert_level = 3
     elif fog_probability > 60:
-        fog_likelihood += f", ind reduces fog" if wind_speed > 10 else " It may persist"
+        fog_likelihood += ", ind reduces fog" if wind_speed > 10 else " It may persist"
 
     # **🔹 Improved Logging**
-    _LOGGER.debug(f"Fog Probability: {fog_probability}%, Dew Point: {dewpoint:.2f}°C, Temp Diff: {temp_diff:.2f}°C, Alert Level: {alert_level}")
+    _LOGGER.debug(
+        f"Fog Probability: {fog_probability}%, Dew Point: {dewpoint:.2f}°C, Temp Diff: {temp_diff:.2f}°C, Alert Level: {alert_level}"
+    )
 
     return fog_likelihood, fog_dec_probability, dewpoint, temp_diff, alert_level

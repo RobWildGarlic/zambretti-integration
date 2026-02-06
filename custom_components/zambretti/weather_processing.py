@@ -1,13 +1,14 @@
-import math
+import logging
+
 from .const import ICON_MAPPING
 from .helpers import safe_float
-from .wind_analysis import determine_wind_direction
 
-
-import logging
 _LOGGER = logging.getLogger(__name__)
 
-async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperature, normal_pressure):
+
+async def zambretti_forecast(
+    pressure, fall, trend, current_wind_speed, temperature, normal_pressure
+):
     """Determines the general forecast based on pressure, pressure trend, and temperature."""
 
     icon = "mdi:zend"
@@ -17,21 +18,19 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
     # Adjust storm risk based on temperature
     temp_modifier = 0  # Adjusts storm severity
     if safe_float(temperature):
-        _LOGGER.debug(f"Temperature used in Zambretti Forecast: {temperature}")        
+        _LOGGER.debug(f"Temperature used in Zambretti Forecast: {temperature}")
         if safe_float(temperature) > 25:
             temp_modifier = 1  # Warmer air increases storm strength
         elif safe_float(temperature) < 5:
             temp_modifier = -1  # Cold air stabilizes high pressure, reduces storm risk
-            
+
     _LOGGER.debug(f"ZF temp_modifier: {temp_modifier}")
     _LOGGER.debug(f"ZF trend: {trend}")
     _LOGGER.debug(f"ZF pressure: {pressure}")
-    
-     
-    
+
     # Apply Zambretti Forecasting Logic
     forecast = ""
-    if trend == 'rising':
+    if trend == "rising":
         if pressure > normal_pressure + 5:
             forecast += "Clear(ish) skies, little to no rain, mild temperatures"
             icon = ICON_MAPPING[0][0]
@@ -48,12 +47,14 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             alert_level = max(0, alert_level + temp_modifier)
             estimated_wind_speed = max(10, current_wind_speed)
 
-    elif trend == 'steady':
+    elif trend == "steady":
         if pressure > normal_pressure + 5:
             forecast += "Continued fair, calm and predictable weather"
             icon = ICON_MAPPING[0][0]
             alert_level = max(0, alert_level + temp_modifier)
-            estimated_wind_speed = max(5, current_wind_speed)  # 5-12 knots, light breeze
+            estimated_wind_speed = max(
+                5, current_wind_speed
+            )  # 5-12 knots, light breeze
         elif pressure > normal_pressure - 5:
             forecast += "Fair weather with occasional clouds"
             icon = ICON_MAPPING[1][0]
@@ -65,7 +66,7 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             alert_level = max(1, alert_level + temp_modifier)
             estimated_wind_speed = max(12, current_wind_speed + 3)  # 12-18 knots
 
-    elif trend == 'falling':
+    elif trend == "falling":
         if pressure > normal_pressure + 5:
             forecast += "Possible deterioration, watch for winds"
             icon = ICON_MAPPING[2][0]
@@ -84,7 +85,7 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             alert_level = max(3, alert_level + temp_modifier)
             estimated_wind_speed = max(25, current_wind_speed + 12)
 
-    elif trend == 'falling_fast':
+    elif trend == "falling_fast":
         if pressure > normal_pressure - 10:
             forecast += "Windy, rain likely"
             icon = ICON_MAPPING[4][0]
@@ -103,7 +104,7 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
             alert_level = max(5, alert_level + temp_modifier)
             estimated_wind_speed = max(40, current_wind_speed + 25)
 
-    elif trend == 'plummeting':
+    elif trend == "plummeting":
         if pressure > normal_pressure - 10:
             forecast += "Strong winds, thunderstorms, possible storm system"
             if temperature < 0:
@@ -126,5 +127,4 @@ async def zambretti_forecast(pressure, fall, trend, current_wind_speed, temperat
 
     estimated_max_wind_speed = round(safe_float(estimated_wind_speed) * 1.2)
 
-    return forecast, icon, alert_level, estimated_wind_speed, estimated_max_wind_speed 
-
+    return forecast, icon, alert_level, estimated_wind_speed, estimated_max_wind_speed

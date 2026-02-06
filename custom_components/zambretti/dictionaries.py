@@ -3,87 +3,263 @@
 # =========================================
 
 # These dictionaries are used by Zambretti to do it's work
-# For the uninitiated: 
+# For the uninitiated:
 # A dictionary acts like a lookup table, which is perfect for:
-#	•	Matching regions to coordinates et cetera
-#	•	Fast lookup
-#	•	Keeping things easy to read and maintain
+# •	Matching regions to coordinates et cetera
+# •	Fast lookup
+# •	Keeping things easy to read and maintain
 
 # You can add regions to these dictionaries. Make sure to add to all the dictionaries.
 # Zambretti will then automatically provide for your new region(s)
-# Easiest way to do this is using ChatGPT or (another AI). 
+# Easiest way to do this is using ChatGPT or (another AI).
 # Copy one table into ChatGPT (do one table at a time) and ask it to add your region (e.g. "Mars")
 # then copy the addition in the tables below.
 # !! Do not copy the entire table from the AI - they often lose stuff on the way
 # !! and checking is a nightmare. Just copy your addition in the dictionaries below.
 # Do keep en eye on the AI as quite often it makes a mess of it.
-# !! Indentation matters here, !!as do comma's!!, colons and (curly) brackets. 
+# !! Indentation matters here, !!as do comma's!!, colons and (curly) brackets.
 # !! Errors stop Zambretti from loading in HA - the system->log will tell you what went wrong and where
 
 # 🌍 Define Geographic Boundaries
 REGIONS = {
     # Small regions first so they are not ignored for being in a larger region
-    "azores": (35, 41, -32, -24, "https://en.wikipedia.org/wiki/Azores_High"),  # Central Azores region
-    "british_isles": (49, 61, -12, 2, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # UK Met Office (Placed before North Atlantic)
-    "western_europe_coast": (35, 50, -10, 5, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Meteo France
-    #Large regions
-    "north_sea_baltic": (50, 65, -5, 30, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Danish Meteorological Institute (DMI)
-    "mediterranean_NW": (38, 48, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Spain, France, Ligurian Coast
-    "mediterranean_SW": (30, 38, -10, 15, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Balearics, Algeria, Tunisia, Western Italy
-    "mediterranean_NE": (38, 48, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Adriatic, Greece, Balkans, Turkey
-    "mediterranean_SE": (30, 38, 15, 40, "https://en.wikipedia.org/wiki/List_of_local_winds#Europe"),  # Levant, Cyprus, Egypt, Crete
-    "caribbean": (5, 30, -100, -50, "https://en.wikipedia.org/wiki/List_of_local_winds#Caribbean"),  # National Hurricane Center (NOAA)
-    "american_east_coast": (25, 50, -85, -60, "https://en.wikipedia.org/wiki/List_of_local_winds#North_America"),  # US National Weather Service
+    "azores": (
+        35,
+        41,
+        -32,
+        -24,
+        "https://en.wikipedia.org/wiki/Azores_High",
+    ),  # Central Azores region
+    "british_isles": (
+        49,
+        61,
+        -12,
+        2,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # UK Met Office (Placed before North Atlantic)
+    "western_europe_coast": (
+        35,
+        50,
+        -10,
+        5,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Meteo France
+    # Large regions
+    "north_sea_baltic": (
+        50,
+        65,
+        -5,
+        30,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Danish Meteorological Institute (DMI)
+    "mediterranean_NW": (
+        38,
+        48,
+        -10,
+        15,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Spain, France, Ligurian Coast
+    "mediterranean_SW": (
+        30,
+        38,
+        -10,
+        15,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Balearics, Algeria, Tunisia, Western Italy
+    "mediterranean_NE": (
+        38,
+        48,
+        15,
+        40,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Adriatic, Greece, Balkans, Turkey
+    "mediterranean_SE": (
+        30,
+        38,
+        15,
+        40,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Europe",
+    ),  # Levant, Cyprus, Egypt, Crete
+    "caribbean": (
+        5,
+        30,
+        -100,
+        -50,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#Caribbean",
+    ),  # National Hurricane Center (NOAA)
+    "american_east_coast": (
+        25,
+        50,
+        -85,
+        -60,
+        "https://en.wikipedia.org/wiki/List_of_local_winds#North_America",
+    ),  # US National Weather Service
     # Very large regions
-    "north_atlantic": (30, 60, -80, 0, ""),  # NOAA Ocean Prediction Center (Placed last)
+    "north_atlantic": (
+        30,
+        60,
+        -80,
+        0,
+        "",
+    ),  # NOAA Ocean Prediction Center (Placed last)
 }
 
 # 🌍 Regional monthly pressure normals
 MONTHLY_NORMALS_BY_REGION = {
-   "azores": {
-        1: 1023, 2: 1023, 3: 1022, 4: 1021, 5: 1020, 6: 1019,
-        7: 1019, 8: 1020, 9: 1021, 10: 1022, 11: 1023, 12: 1023
-   },
-   "british_isles": {
-        1: 1012, 2: 1013, 3: 1014, 4: 1015, 5: 1016, 6: 1016,
-        7: 1016, 8: 1015, 9: 1015, 10: 1014, 11: 1013, 12: 1012
+    "azores": {
+        1: 1023,
+        2: 1023,
+        3: 1022,
+        4: 1021,
+        5: 1020,
+        6: 1019,
+        7: 1019,
+        8: 1020,
+        9: 1021,
+        10: 1022,
+        11: 1023,
+        12: 1023,
+    },
+    "british_isles": {
+        1: 1012,
+        2: 1013,
+        3: 1014,
+        4: 1015,
+        5: 1016,
+        6: 1016,
+        7: 1016,
+        8: 1015,
+        9: 1015,
+        10: 1014,
+        11: 1013,
+        12: 1012,
     },
     "western_europe_coast": {
-        1: 1015, 2: 1016, 3: 1016, 4: 1017, 5: 1017, 6: 1017,
-        7: 1017, 8: 1017, 9: 1017, 10: 1016, 11: 1015, 12: 1015
+        1: 1015,
+        2: 1016,
+        3: 1016,
+        4: 1017,
+        5: 1017,
+        6: 1017,
+        7: 1017,
+        8: 1017,
+        9: 1017,
+        10: 1016,
+        11: 1015,
+        12: 1015,
     },
     "north_sea_baltic": {
-        1: 1011, 2: 1012, 3: 1014, 4: 1015, 5: 1016, 6: 1016,
-        7: 1016, 8: 1015, 9: 1015, 10: 1014, 11: 1013, 12: 1012
+        1: 1011,
+        2: 1012,
+        3: 1014,
+        4: 1015,
+        5: 1016,
+        6: 1016,
+        7: 1016,
+        8: 1015,
+        9: 1015,
+        10: 1014,
+        11: 1013,
+        12: 1012,
     },
     "mediterranean_NW": {
-        1: 1014, 2: 1015, 3: 1016, 4: 1017, 5: 1017, 6: 1016,
-        7: 1017, 8: 1017, 9: 1017, 10: 1016, 11: 1015, 12: 1014
+        1: 1014,
+        2: 1015,
+        3: 1016,
+        4: 1017,
+        5: 1017,
+        6: 1016,
+        7: 1017,
+        8: 1017,
+        9: 1017,
+        10: 1016,
+        11: 1015,
+        12: 1014,
     },
     "mediterranean_SW": {
-        1: 1015, 2: 1016, 3: 1017, 4: 1017, 5: 1017, 6: 1016,
-        7: 1016, 8: 1016, 9: 1016, 10: 1015, 11: 1015, 12: 1014
+        1: 1015,
+        2: 1016,
+        3: 1017,
+        4: 1017,
+        5: 1017,
+        6: 1016,
+        7: 1016,
+        8: 1016,
+        9: 1016,
+        10: 1015,
+        11: 1015,
+        12: 1014,
     },
     "mediterranean_NE": {
-        1: 1017, 2: 1018, 3: 1018, 4: 1018, 5: 1017, 6: 1016,
-        7: 1015, 8: 1015, 9: 1016, 10: 1017, 11: 1017, 12: 1017
+        1: 1017,
+        2: 1018,
+        3: 1018,
+        4: 1018,
+        5: 1017,
+        6: 1016,
+        7: 1015,
+        8: 1015,
+        9: 1016,
+        10: 1017,
+        11: 1017,
+        12: 1017,
     },
     "mediterranean_SE": {
-        1: 1017, 2: 1017, 3: 1017, 4: 1016, 5: 1015, 6: 1014,
-        7: 1013, 8: 1013, 9: 1014, 10: 1016, 11: 1017, 12: 1017
+        1: 1017,
+        2: 1017,
+        3: 1017,
+        4: 1016,
+        5: 1015,
+        6: 1014,
+        7: 1013,
+        8: 1013,
+        9: 1014,
+        10: 1016,
+        11: 1017,
+        12: 1017,
     },
     "caribbean": {
-        1: 1016, 2: 1016, 3: 1015, 4: 1014, 5: 1013, 6: 1013,
-        7: 1013, 8: 1013, 9: 1013, 10: 1014, 11: 1015, 12: 1016
+        1: 1016,
+        2: 1016,
+        3: 1015,
+        4: 1014,
+        5: 1013,
+        6: 1013,
+        7: 1013,
+        8: 1013,
+        9: 1013,
+        10: 1014,
+        11: 1015,
+        12: 1016,
     },
     "american_east_coast": {
-        1: 1015, 2: 1015, 3: 1015, 4: 1016, 5: 1016, 6: 1015,
-        7: 1015, 8: 1015, 9: 1016, 10: 1017, 11: 1017, 12: 1016
+        1: 1015,
+        2: 1015,
+        3: 1015,
+        4: 1016,
+        5: 1016,
+        6: 1015,
+        7: 1015,
+        8: 1015,
+        9: 1016,
+        10: 1017,
+        11: 1017,
+        12: 1016,
     },
     "north_atlantic": {
-        1: 1020, 2: 1019, 3: 1019, 4: 1018, 5: 1017, 6: 1016,
-        7: 1016, 8: 1017, 9: 1018, 10: 1019, 11: 1020, 12: 1020
-    }
+        1: 1020,
+        2: 1019,
+        3: 1019,
+        4: 1018,
+        5: 1017,
+        6: 1016,
+        7: 1016,
+        8: 1017,
+        9: 1018,
+        10: 1019,
+        11: 1020,
+        12: 1020,
+    },
 }
 
 # 🔄 Wind Direction Mapping (region-based)
@@ -186,12 +362,12 @@ WIND_SYSTEM_INDEX = {
         "E": ["Trade Winds", "Hurricane Alley"],
         "E-NE": [],
         "NE": ["Trade Winds"],
-        "N-NE": []
+        "N-NE": [],
     },
     "north_atlantic": {
         "N": ["Icelandic Low", "Greenland High", "Arctic Outflow"],
-        "N-NE": ["Nor’easters", "Icelandic Low", "Polar Jet Stream"],
-        "NE": ["Nor’easters", "Westerlies", "Mid-Latitude Cyclones"],
+        "N-NE": ["Nor'easters", "Icelandic Low", "Polar Jet Stream"],
+        "NE": ["Nor'easters", "Westerlies", "Mid-Latitude Cyclones"],
         "E-NE": ["Azores High", "Trade Winds Influence", "Westerlies"],
         "E": ["Azores High", "Subtropical Westerlies", "Bermuda High Influence"],
         "E-SE": ["Azores High", "Bermuda High", "Trade Winds"],
@@ -211,13 +387,13 @@ WIND_SYSTEM_INDEX = {
         "N-NE": ["North Sea Storms", "Easterly Continental Winds"],
         "NE": ["Easterly Continental Winds", "North Sea Storms"],
         "E-NE": ["Easterly Continental Winds", "North Sea Storms"],
-        "E": ["Easterly Continental Winds", "Beaufort’s Westerlies"],
-        "E-SE": ["Beaufort’s Westerlies", "Southeast Trades"],
+        "E": ["Easterly Continental Winds", "Beaufort's Westerlies"],
+        "E-SE": ["Beaufort's Westerlies", "Southeast Trades"],
         "SE": ["Southeast Trades", "Channel Winds"],
         "S-SE": ["Southeast Trades", "Azores High Influence"],
         "S": ["Azores High Influence", "Channel Winds"],
-        "S-SW": ["Channel Winds", "Beaufort’s Westerlies"],
-        "SW": ["Beaufort’s Westerlies", "North Atlantic Drift"],
+        "S-SW": ["Channel Winds", "Beaufort's Westerlies"],
+        "SW": ["Beaufort's Westerlies", "North Atlantic Drift"],
         "W-SW": ["North Atlantic Drift", "Westerlies"],
         "W": ["Westerlies", "North Atlantic Drift"],
         "W-NW": ["Westerlies", "Icelandic Low Influence"],
@@ -225,22 +401,22 @@ WIND_SYSTEM_INDEX = {
         "N-NW": ["Icelandic Low Influence", "North Sea Storms"],
     },
     "western_europe_coast": {
-        "N": ["Portuguese Northerlies"],  
-        "N-NE": ["Portuguese Northerlies", "Galician Trade Winds"],  
-        "NE": ["Galician Trade Winds", "Bay of Biscay Gales"],  
-        "E-NE": ["Levanter"],  
-        "E": ["Levanter"],  
-        "E-SE": ["Levanter", "Iberian Low Pressure Winds"],  
-        "SE": ["Iberian Low Pressure Winds"],  
-        "S-SE": ["Iberian Low Pressure Winds"],  
-        "S": ["Iberian Low Pressure Winds"],  
-        "S-SW": ["Iberian Low Pressure Winds"],  
-        "SW": ["Bay of Biscay Gales", "Cantabrian Gusts"],  
-        "W-SW": ["Brittany Westerlies", "Bay of Biscay Gales"],  
-        "W": ["Brittany Westerlies", "Bay of Biscay Gales"],  
-        "W-NW": ["Bay of Biscay Gales", "Cantabrian Gusts"],  
-        "NW": ["Bay of Biscay Gales", "Portuguese Northerlies"],  
-        "N-NW": ["Portuguese Northerlies"],  
+        "N": ["Portuguese Northerlies"],
+        "N-NE": ["Portuguese Northerlies", "Galician Trade Winds"],
+        "NE": ["Galician Trade Winds", "Bay of Biscay Gales"],
+        "E-NE": ["Levanter"],
+        "E": ["Levanter"],
+        "E-SE": ["Levanter", "Iberian Low Pressure Winds"],
+        "SE": ["Iberian Low Pressure Winds"],
+        "S-SE": ["Iberian Low Pressure Winds"],
+        "S": ["Iberian Low Pressure Winds"],
+        "S-SW": ["Iberian Low Pressure Winds"],
+        "SW": ["Bay of Biscay Gales", "Cantabrian Gusts"],
+        "W-SW": ["Brittany Westerlies", "Bay of Biscay Gales"],
+        "W": ["Brittany Westerlies", "Bay of Biscay Gales"],
+        "W-NW": ["Bay of Biscay Gales", "Cantabrian Gusts"],
+        "NW": ["Bay of Biscay Gales", "Portuguese Northerlies"],
+        "N-NW": ["Portuguese Northerlies"],
     },
     "north_sea_baltic": {
         "N": ["Scandinavian High", "Katabatic Winds"],
@@ -282,89 +458,356 @@ WIND_SYSTEM_INDEX = {
 
 # 🌊 Wind System Definitions
 WIND_SYSTEM_CATALOG = {
-    "Tramontane": ((40, 48, -10, 6), "Dry, strong N wind over Southern France and Spain.", "https://en.wikipedia.org/wiki/Tramontane"),
-    "Mistral": ((38, 44, -6, 10), "Cold, dry NW wind, clearing skies in the Western Med.", "https://en.wikipedia.org/wiki/Mistral_(wind)"),
-    "Libeccio": ((30, 45, -18, 10), "SW wind, stormy in autumn and winter, high waves.", "https://en.wikipedia.org/wiki/Libeccio"),
-    "Sirocco": ((30, 45, -10, 25), "Hot, dusty SE wind, humid near coasts.", "https://en.wikipedia.org/wiki/Sirocco"),
-    "Bora": ((38, 48, 12, 20), "Cold NE wind in the Adriatic, sudden strong gusts.", "https://en.wikipedia.org/wiki/Bora_(wind)"),
-    "Meltemi": ((34, 48, 20, 30), "Strong summer winds, rough seas, strongest in afternoons.", "https://en.wikipedia.org/wiki/Etesian"),
-    "Khamsin": ((25, 38, 20, 35), "Hot, dusty wind from the Sahara, lasts for days.", "https://en.wikipedia.org/wiki/Khamsin"),
-    "Gregale": ((30, 42, 12, 25), "Strong NE wind from the Balkans, causes rough seas.", "https://en.wikipedia.org/wiki/Gregale"),
-    "Ponente": ((36, 44, -6, 15), "Mild W wind, freshens air and clears skies.", "https://en.wikipedia.org/wiki/West_wind"),
-    "Jugo": ((38, 45, 12, 20), "Warm, humid SE wind, bringing storms and rough seas.", "https://en.wikipedia.org/wiki/Sirocco"),
-    "Ghibli": ((25, 40, 10, 20), "Intense, hot desert wind, causes sandstorms.", "https://en.wikipedia.org/wiki/Sirocco"),
-    "Ostro": ((30, 45, 5, 20), "Warm, humid S wind from Africa, linked to Sirocco.", "https://en.wikipedia.org/wiki/Ostro"),
-    "Levantadis": ((35, 42, 18, 28), "Local Levante wind in Ionian and Aegean Seas.", "https://en.wikipedia.org/wiki/Llevantades"),
-    "Imbat": ((36, 42, 26, 30), "Cool sea breeze along the Aegean coast.", "https://en.wikipedia.org/wiki/Karşıyaka"),
-    "Maestro": ((38, 45, 12, 24), "Gentle NW breeze, pleasant summer weather.", "https://en.wikipedia.org/wiki/Mistral_(wind)#Maestral_or_maestro_in_the_Adriatic"),
-    "Zephyr": ((35, 45, -10, 20), "Gentle summer westerly, brings pleasant weather.", "https://en.wikipedia.org/wiki/Mistral_(wind)#Maestral_or_maestro_in_the_Adriatic"),
-    "Marin": ((36, 44, -6, 4), "Moist SE wind, heavy rain and storms in Gulf of Lion.", "https://en.wikipedia.org/wiki/Marin_(wind)"),
-    "Mbatis": ((35, 42, 20, 30), "Light, refreshing sea breeze common in Greece.", "https://izmir.ktb.gov.tr/EN-239196/general-information.html"),
-    "Datoo": ((30, 40, -5, 15), "Hot, dry wind from North Africa, like the Khamsin.", "https://en.wikipedia.org/wiki/Khamsin"),
-    "Levante": ((34, 40, -10, 10), "Warm, moist E wind, often brings fog and rain.", "https://en.wikipedia.org/wiki/Levant_(wind)"),
-    "Trade Winds": ((5, 30, -90, -55), "Steady NE-E winds, dominant year-round.",""),
-    "Brisas": ((10, 25, -90, -55), "Coastal sea breezes, onshore by day, offshore at night.",""),
-    "El Norte": ((15, 30, -95, -70), "Strong winter N-NW winds after cold fronts.",""),
-    "Chubasco": ((5, 20, -90, -55), "Sudden tropical squalls with gusty winds.",""),
-    "Papagayo Winds": ((8, 15, -92, -83), "Strong gap winds blasting from Central America.",""),
-    "Tehuantepecer": ((10, 20, -98, -90), "Violent N winds from Mexico, big waves.",""),
-    "Hurricane Alley": ((5, 30, -80, -50), "High storm activity, strongest in summer.",""),
-    "Westerlies": ((30, 60, -80, 0), "Persistent W winds, strong mid-latitude influence.",""),
-    "Nor’easters": ((35, 50, -80, -50), "Intense NE storms along the US East Coast.",""),
-    "Bermuda High": ((20, 40, -70, -40), "Stable high pressure steering Atlantic winds.",""),
-    "Azores High": ((30, 45, -40, 10), "Affects Europe and North Atlantic weather.",""),
-    "Icelandic Low": ((50, 65, -50, -10), "Strong low-pressure system, frequent storms.",""),
-    "Greenland High": ((60, 75, -50, -10), "Arctic high pressure, very cold air masses.",""),
-    "Trade Winds": ((10, 30, -80, -30), "Persistent tropical E winds.",""),
-    "Gulf Stream Influence": ((25, 40, -80, -50), "Warm ocean current, affects storms.",""),
-    "Hurricane Alley": ((10, 30, -80, -50), "Common Atlantic hurricane path.",""),
-    "Polar Jet Stream": ((45, 70, -80, -10), "Fast-moving upper air current, drives storms.",""),
-    "Arctic Outflow": ((60, 75, -80, -10), "Cold air from the Arctic, strong winds.",""),
-    "Westerlies": ((48, 61, -15, 5), "Changeable winds across the UK and Ireland.",""),
-    "Icelandic Low Influence": ((50, 65, -50, -10), "Drives storms and strong winds in the North Atlantic.",""),
-    "Azores High Influence": ((30, 45, -40, 10), "Brings settled weather but can also cause heatwaves.",""),
-    "North Atlantic Drift": ((45, 60, -20, 5), "Warm ocean current moderating UK climate.",""),
-    "Föhn Effect": ((50, 58, -10, 2), "Warm, dry wind descending in Scotland and NW England.",""),
-    "North Sea Storms": ((50, 62, -5, 10), "Sudden squalls, common in autumn and winter.",""),
-    "Easterly Continental Winds": ((50, 60, 0, 10), "Cold, dry air from Europe, brings winter snow.",""),
-    "Beaufort’s Westerlies": ((48, 60, -15, 5), "Moderate to strong westerlies over the UK.",""),
-    "Channel Winds": ((49, 52, -5, 2), "Strong funneling winds in the English Channel.",""),
-    "Southeast Trades": ((50, 55, -5, 5), "Warm, humid winds from France, bring mild weather.",""),
-    "Portuguese Northerlies": ((35, 44, -10, -5), "Strong summer winds from the north, cooling Portuguese coastal waters.",""),
-    "Bay of Biscay Gales": ((43, 50, -10, 0), "Intense storms and strong winds, common in autumn and winter.",""),
-    "Galician Trade Winds": ((41, 45, -10, -6), "Persistent NW winds along Galicia, strengthening in summer.",""),
-    "Brittany Westerlies": ((47, 50, -8, 2), "Strong westerlies hitting the Breton coast, especially in winter.",""),
-    "Iberian Low Pressure Winds": ((35, 45, -10, 0), "Unstable, humid winds driven by low pressure over Spain & Portugal.",""),
-    "Levanter": ((35, 37, -7, -5), "Easterly wind in the Strait of Gibraltar, bringing fog & humidity.",""),
-    "Cantabrian Gusts": ((42, 45, -10, -2), "Strong local winds on Spain’s N coast, driven by Atlantic storms.",""),
-    "North Sea Westerlies": ((50, 65, -5, 10), "Frequent westerly storms and strong gales over the North Sea.",""),
-    "Baltic Easterlies": ((53, 65, 10, 30), "Cold & dry in winter, humid & unstable in summer.",""),
-    "Katabatic Winds": ((55, 65, 5, 30), "Cold descending winds along Scandinavian coasts.",""),
-    "Gulf of Finland Wind": ((58, 61, 20, 30), "Variable winds funneled through narrow Baltic straits.",""),
-    "Scandinavian High": ((55, 65, 10, 30), "Cold, dry high-pressure winds from Scandinavia.",""),
-    "Skagerrak Gales": ((55, 60, 5, 15), "Strong westerly gales in the Skagerrak Strait.",""),
-    "North Atlantic Lows": ((50, 65, -10, 5), "Stormy conditions from low-pressure systems.",""),
-    "Danish Straits Winds": ((53, 57, 10, 15), "Rapidly shifting winds through Danish straits.",""),
-    "Nor'easters": ((35, 50, -85, -60), "Intense coastal storms with strong winds and heavy rain or snow.",""),
-    "Bermuda High": ((20, 40, -80, -50), "Subtropical high-pressure system steering storms & summer heat.",""),
-    "Gulf Stream Winds": ((25, 45, -80, -60), "Warm ocean currents fueling storms & moderating temperatures.",""),
-    "Hurricane Alley": ((20, 40, -85, -60), "A major track for hurricanes forming in the Atlantic.",""),
-    "Appalachian Downslope Winds": ((30, 45, -85, -70), "Gusty, dry winds descending from the Appalachians.",""),
-    "Coastal Sea Breezes": ((25, 40, -85, -65), "Daily shifts between land & sea breezes along the coast.",""),
-    "Polar Jet Stream": ((35, 50, -90, -60), "Fast-moving air current steering storms & cold outbreaks.",""),
-    "Cape Hatteras Cyclones": ((30, 40, -85, -65), "Low-pressure systems intensifying off the Carolina coast.",""),
-    "Trade Winds": ((20, 30, -85, -60), "Steady easterly winds steering storms & tropical systems.",""),
-    "Great Lakes Outflow": ((40, 50, -85, -70), "Cold air from the Great Lakes fueling snow & strong winds.",""),
+    "Tramontane": (
+        (40, 48, -10, 6),
+        "Dry, strong N wind over Southern France and Spain.",
+        "https://en.wikipedia.org/wiki/Tramontane",
+    ),
+    "Mistral": (
+        (38, 44, -6, 10),
+        "Cold, dry NW wind, clearing skies in the Western Med.",
+        "https://en.wikipedia.org/wiki/Mistral_(wind)",
+    ),
+    "Libeccio": (
+        (30, 45, -18, 10),
+        "SW wind, stormy in autumn and winter, high waves.",
+        "https://en.wikipedia.org/wiki/Libeccio",
+    ),
+    "Sirocco": (
+        (30, 45, -10, 25),
+        "Hot, dusty SE wind, humid near coasts.",
+        "https://en.wikipedia.org/wiki/Sirocco",
+    ),
+    "Bora": (
+        (38, 48, 12, 20),
+        "Cold NE wind in the Adriatic, sudden strong gusts.",
+        "https://en.wikipedia.org/wiki/Bora_(wind)",
+    ),
+    "Meltemi": (
+        (34, 48, 20, 30),
+        "Strong summer winds, rough seas, strongest in afternoons.",
+        "https://en.wikipedia.org/wiki/Etesian",
+    ),
+    "Khamsin": (
+        (25, 38, 20, 35),
+        "Hot, dusty wind from the Sahara, lasts for days.",
+        "https://en.wikipedia.org/wiki/Khamsin",
+    ),
+    "Gregale": (
+        (30, 42, 12, 25),
+        "Strong NE wind from the Balkans, causes rough seas.",
+        "https://en.wikipedia.org/wiki/Gregale",
+    ),
+    "Ponente": (
+        (36, 44, -6, 15),
+        "Mild W wind, freshens air and clears skies.",
+        "https://en.wikipedia.org/wiki/West_wind",
+    ),
+    "Jugo": (
+        (38, 45, 12, 20),
+        "Warm, humid SE wind, bringing storms and rough seas.",
+        "https://en.wikipedia.org/wiki/Sirocco",
+    ),
+    "Ghibli": (
+        (25, 40, 10, 20),
+        "Intense, hot desert wind, causes sandstorms.",
+        "https://en.wikipedia.org/wiki/Sirocco",
+    ),
+    "Ostro": (
+        (30, 45, 5, 20),
+        "Warm, humid S wind from Africa, linked to Sirocco.",
+        "https://en.wikipedia.org/wiki/Ostro",
+    ),
+    "Levantadis": (
+        (35, 42, 18, 28),
+        "Local Levante wind in Ionian and Aegean Seas.",
+        "https://en.wikipedia.org/wiki/Llevantades",
+    ),
+    "Imbat": (
+        (36, 42, 26, 30),
+        "Cool sea breeze along the Aegean coast.",
+        "https://en.wikipedia.org/wiki/Kar%C5%9F%C4%B1yaka",
+    ),
+    "Maestro": (
+        (38, 45, 12, 24),
+        "Gentle NW breeze, pleasant summer weather.",
+        "https://en.wikipedia.org/wiki/Mistral_(wind)#Maestral_or_maestro_in_the_Adriatic",
+    ),
+    "Zephyr": (
+        (35, 45, -10, 20),
+        "Gentle summer westerly, brings pleasant weather.",
+        "https://en.wikipedia.org/wiki/Mistral_(wind)#Maestral_or_maestro_in_the_Adriatic",
+    ),
+    "Marin": (
+        (36, 44, -6, 4),
+        "Moist SE wind, heavy rain and storms in Gulf of Lion.",
+        "https://en.wikipedia.org/wiki/Marin_(wind)",
+    ),
+    "Mbatis": (
+        (35, 42, 20, 30),
+        "Light, refreshing sea breeze common in Greece.",
+        "https://izmir.ktb.gov.tr/EN-239196/general-information.html",
+    ),
+    "Datoo": (
+        (30, 40, -5, 15),
+        "Hot, dry wind from North Africa, like the Khamsin.",
+        "https://en.wikipedia.org/wiki/Khamsin",
+    ),
+    "Levante": (
+        (34, 40, -10, 10),
+        "Warm, moist E wind, often brings fog and rain.",
+        "https://en.wikipedia.org/wiki/Levant_(wind)",
+    ),
+    "Brisas": (
+        (10, 25, -90, -55),
+        "Coastal sea breezes, onshore by day, offshore at night.",
+        "",
+    ),
+    "El Norte": ((15, 30, -95, -70), "Strong winter N-NW winds after cold fronts.", ""),
+    "Chubasco": ((5, 20, -90, -55), "Sudden tropical squalls with gusty winds.", ""),
+    "Papagayo Winds": (
+        (8, 15, -92, -83),
+        "Strong gap winds blasting from Central America.",
+        "",
+    ),
+    "Tehuantepecer": (
+        (10, 20, -98, -90),
+        "Violent N winds from Mexico, big waves.",
+        "",
+    ),
+    "Azores High": (
+        (30, 45, -40, 10),
+        "Affects Europe and North Atlantic weather.",
+        "",
+    ),
+    "Icelandic Low": (
+        (50, 65, -50, -10),
+        "Strong low-pressure system, frequent storms.",
+        "",
+    ),
+    "Greenland High": (
+        (60, 75, -50, -10),
+        "Arctic high pressure, very cold air masses.",
+        "",
+    ),
+    "Gulf Stream Influence": (
+        (25, 40, -80, -50),
+        "Warm ocean current, affects storms.",
+        "",
+    ),
+    "Arctic Outflow": (
+        (60, 75, -80, -10),
+        "Cold air from the Arctic, strong winds.",
+        "",
+    ),
+    "Westerlies": ((30, 61, -80, 5), "Changeable winds across the UK and Ireland.", ""),
+    "Icelandic Low Influence": (
+        (50, 65, -50, -10),
+        "Drives storms and strong winds in the North Atlantic.",
+        "",
+    ),
+    "Azores High Influence": (
+        (30, 45, -40, 10),
+        "Brings settled weather but can also cause heatwaves.",
+        "",
+    ),
+    "North Atlantic Drift": (
+        (45, 60, -20, 5),
+        "Warm ocean current moderating UK climate.",
+        "",
+    ),
+    "Föhn Effect": (
+        (50, 58, -10, 2),
+        "Warm, dry wind descending in Scotland and NW England.",
+        "",
+    ),
+    "North Sea Storms": (
+        (50, 62, -5, 10),
+        "Sudden squalls, common in autumn and winter.",
+        "",
+    ),
+    "Easterly Continental Winds": (
+        (50, 60, 0, 10),
+        "Cold, dry air from Europe, brings winter snow.",
+        "",
+    ),
+    "Beaufort's Westerlies": (
+        (48, 60, -15, 5),
+        "Moderate to strong westerlies over the UK.",
+        "",
+    ),
+    "Channel Winds": (
+        (49, 52, -5, 2),
+        "Strong funneling winds in the English Channel.",
+        "",
+    ),
+    "Southeast Trades": (
+        (50, 55, -5, 5),
+        "Warm, humid winds from France, bring mild weather.",
+        "",
+    ),
+    "Portuguese Northerlies": (
+        (35, 44, -10, -5),
+        "Strong summer winds from the north, cooling Portuguese coastal waters.",
+        "",
+    ),
+    "Bay of Biscay Gales": (
+        (43, 50, -10, 0),
+        "Intense storms and strong winds, common in autumn and winter.",
+        "",
+    ),
+    "Galician Trade Winds": (
+        (41, 45, -10, -6),
+        "Persistent NW winds along Galicia, strengthening in summer.",
+        "",
+    ),
+    "Brittany Westerlies": (
+        (47, 50, -8, 2),
+        "Strong westerlies hitting the Breton coast, especially in winter.",
+        "",
+    ),
+    "Iberian Low Pressure Winds": (
+        (35, 45, -10, 0),
+        "Unstable, humid winds driven by low pressure over Spain & Portugal.",
+        "",
+    ),
+    "Levanter": (
+        (35, 37, -7, -5),
+        "Easterly wind in the Strait of Gibraltar, bringing fog & humidity.",
+        "",
+    ),
+    "Cantabrian Gusts": (
+        (42, 45, -10, -2),
+        "Strong local winds on Spain's N coast, driven by Atlantic storms.",
+        "",
+    ),
+    "North Sea Westerlies": (
+        (50, 65, -5, 10),
+        "Frequent westerly storms and strong gales over the North Sea.",
+        "",
+    ),
+    "Baltic Easterlies": (
+        (53, 65, 10, 30),
+        "Cold & dry in winter, humid & unstable in summer.",
+        "",
+    ),
+    "Katabatic Winds": (
+        (55, 65, 5, 30),
+        "Cold descending winds along Scandinavian coasts.",
+        "",
+    ),
+    "Gulf of Finland Wind": (
+        (58, 61, 20, 30),
+        "Variable winds funneled through narrow Baltic straits.",
+        "",
+    ),
+    "Scandinavian High": (
+        (55, 65, 10, 30),
+        "Cold, dry high-pressure winds from Scandinavia.",
+        "",
+    ),
+    "Skagerrak Gales": (
+        (55, 60, 5, 15),
+        "Strong westerly gales in the Skagerrak Strait.",
+        "",
+    ),
+    "North Atlantic Lows": (
+        (50, 65, -10, 5),
+        "Stormy conditions from low-pressure systems.",
+        "",
+    ),
+    "Danish Straits Winds": (
+        (53, 57, 10, 15),
+        "Rapidly shifting winds through Danish straits.",
+        "",
+    ),
+    "Nor'easters": (
+        (35, 50, -85, -50),
+        "Intense coastal storms with strong winds and heavy rain or snow.",
+        "",
+    ),
+    "Bermuda High": (
+        (20, 40, -80, -40),
+        "Subtropical high-pressure system steering storms & summer heat.",
+        "",
+    ),
+    "Gulf Stream Winds": (
+        (25, 45, -80, -60),
+        "Warm ocean currents fueling storms & moderating temperatures.",
+        "",
+    ),
+    "Hurricane Alley": (
+        (5, 40, -85, -50),
+        "A major track for hurricanes forming in the Atlantic.",
+        "",
+    ),
+    "Appalachian Downslope Winds": (
+        (30, 45, -85, -70),
+        "Gusty, dry winds descending from the Appalachians.",
+        "",
+    ),
+    "Coastal Sea Breezes": (
+        (25, 40, -85, -65),
+        "Daily shifts between land & sea breezes along the coast.",
+        "",
+    ),
+    "Polar Jet Stream": (
+        (35, 70, -90, -10),
+        "Fast-moving air current steering storms & cold outbreaks.",
+        "",
+    ),
+    "Cape Hatteras Cyclones": (
+        (30, 40, -85, -65),
+        "Low-pressure systems intensifying off the Carolina coast.",
+        "",
+    ),
+    "Trade Winds": (
+        (5, 30, -90, -30),
+        "Steady easterly winds steering storms & tropical systems.",
+        "",
+    ),
+    "Great Lakes Outflow": (
+        (40, 50, -85, -70),
+        "Cold air from the Great Lakes fueling snow & strong winds.",
+        "",
+    ),
     # 🌬️ Azores Winds
-    "Nortada": ((35, 41, -32, -24), "Cool, dry N wind often present in the Azores, especially in summer.", "https://en.wikipedia.org/wiki/Nortada"),
-    "Nordeste": ((35, 41, -32, -24), "Persistent NE trade wind in the Azores region.", "https://en.wikipedia.org/wiki/Trade_winds"),
-    "Leste": ((35, 41, -32, -24), "Hot, dry E wind that occasionally brings Saharan dust to the Azores.", "https://pt.wikipedia.org/wiki/Leste_(vento)"),
-    "Sul": ((35, 41, -32, -24), "Warm and humid S wind that can bring storms to the Azores.", ""),
-    "Sudoeste": ((35, 41, -32, -24), "Moist SW wind associated with Atlantic depressions and bad weather.", ""),
-    "Poente": ((35, 41, -32, -24), "Westerly wind; often mild and moist, linked to frontal passages.", ""),
-    "Noroeste": ((35, 41, -32, -24), "Cool NW wind, typically follows cold fronts in the Azores.", ""),
+    "Nortada": (
+        (35, 41, -32, -24),
+        "Cool, dry N wind often present in the Azores, especially in summer.",
+        "https://en.wikipedia.org/wiki/Nortada",
+    ),
+    "Nordeste": (
+        (35, 41, -32, -24),
+        "Persistent NE trade wind in the Azores region.",
+        "https://en.wikipedia.org/wiki/Trade_winds",
+    ),
+    "Leste": (
+        (35, 41, -32, -24),
+        "Hot, dry E wind that occasionally brings Saharan dust to the Azores.",
+        "https://pt.wikipedia.org/wiki/Leste_(vento)",
+    ),
+    "Sul": (
+        (35, 41, -32, -24),
+        "Warm and humid S wind that can bring storms to the Azores.",
+        "",
+    ),
+    "Sudoeste": (
+        (35, 41, -32, -24),
+        "Moist SW wind associated with Atlantic depressions and bad weather.",
+        "",
+    ),
+    "Poente": (
+        (35, 41, -32, -24),
+        "Westerly wind; often mild and moist, linked to frontal passages.",
+        "",
+    ),
+    "Noroeste": (
+        (35, 41, -32, -24),
+        "Cool NW wind, typically follows cold fronts in the Azores.",
+        "",
+    ),
 }
-
 
 
 # 🌍 Default descriptions for wind directions per region
@@ -385,7 +828,7 @@ REGION_CATALOG = {
         "W": "Poente: Westerly frontal wind with variable cloud and rain.",
         "W-NW": "Post-frontal flow, clearing with gusts and falling temps.",
         "NW": "Noroeste: Cool and breezy; often follows a cold front.",
-        "N-NW": "Return flow toward the Azores High; typically dry and clearing."
+        "N-NW": "Return flow toward the Azores High; typically dry and clearing.",
     },
     "mediterranean_NW": {
         "N": "Northern winds: Cold air from Europe, often strong, affecting France and Northern Spain.",
@@ -480,7 +923,7 @@ REGION_CATALOG = {
     "north_atlantic": {
         "N": "Northern winds: Often cold, stormy, and associated with low pressure. Strong winds from Arctic air masses.",
         "N-NE": "North-Northeast winds: Cold, dry winds often bringing clear skies but low temperatures.",
-        "NE": "Northeast winds: Can bring strong storms, heavy precipitation, and Nor’easters along the US East Coast.",
+        "NE": "Northeast winds: Can bring strong storms, heavy precipitation, and Nor'easters along the US East Coast.",
         "E-NE": "East-Northeast winds: Moist winds, often associated with developing storm systems.",
         "E": "Easterly winds: Generally milder, bringing warm oceanic air, but can be humid and unstable.",
         "E-SE": "East-Southeast winds: Warm and humid, can lead to storm formation, particularly in hurricane season.",
@@ -488,7 +931,7 @@ REGION_CATALOG = {
         "S-SE": "South-Southeast winds: Increasing warmth and humidity, precursor to stormy conditions.",
         "S": "Southerly winds: Warm, humid air masses bringing mild but sometimes unstable weather.",
         "S-SW": "South-Southwest winds: Can be stormy in low-pressure systems but often bring milder weather in mid-latitudes.",
-        "SW": "Southwest winds: Typically bring mild, wet weather from the Atlantic, influencing Europe’s western coasts.",
+        "SW": "Southwest winds: Typically bring mild, wet weather from the Atlantic, influencing Europe's western coasts.",
         "W-SW": "West-Southwest winds: Mild, damp, and commonly linked with the Westerlies dominating the region.",
         "W": "Westerly winds: The dominant mid-latitude system, bringing frequent changes in weather patterns.",
         "W-NW": "West-Northwest winds: Often cool and dry, following passing storm systems.",
@@ -532,7 +975,7 @@ REGION_CATALOG = {
         "N-NE": "North-Northeast winds: A mix of cold Arctic air and Baltic winds, bringing strong gales and freezing spray in winter. Can cause extreme wind chills.",
     },
     "american_east_coast": {
-        "N": "Northern winds: Cold Arctic air descends from Canada, bringing frigid temperatures in winter and dry, stable air in summer. Can fuel Nor’easters in the Northeast.",
+        "N": "Northern winds: Cold Arctic air descends from Canada, bringing frigid temperatures in winter and dry, stable air in summer. Can fuel Nor'easters in the Northeast.",
         "N-NW": "North-Northwest winds: Strong cold fronts bring gusty, dry conditions, particularly in winter. Can cause rapid temperature drops and wind chills.",
         "NW": "Northwest winds: Common in winter, bringing **dry, cold Arctic air** from the Great Lakes region. Often follows the passage of strong low-pressure systems.",
         "W-NW": "West-Northwest winds: Cold, dry air from the interior U.S. moves toward the coast, reinforcing high pressure and clearing storms.",
@@ -545,8 +988,8 @@ REGION_CATALOG = {
         "SE": "Southeast winds: Often associated with tropical disturbances and low-pressure systems developing offshore. **Warm, humid, and stormy conditions.**",
         "E-SE": "East-Southeast winds: Brings moisture-laden air from the Atlantic, creating overcast conditions, **fog, and tropical cyclone activity.**",
         "E": "Easterly winds: **Tropical trade winds influence**, often leading to high humidity, summer storms, and **hurricane activity**.",
-        "E-NE": "East-Northeast winds: **Nor’easter winds** bring strong gales, heavy rain, and **coastal flooding**, especially in winter.",
-        "NE": "Northeast winds: Major **Nor’easter driver**, bringing cold, wet, and stormy weather to the Northeast. Common with powerful winter storms.",
+        "E-NE": "East-Northeast winds: **Nor'easter winds** bring strong gales, heavy rain, and **coastal flooding**, especially in winter.",
+        "NE": "Northeast winds: Major **Nor'easter driver**, bringing cold, wet, and stormy weather to the Northeast. Common with powerful winter storms.",
         "N-NE": "North-Northeast winds: Chilly, damp, and **storm-prone**, particularly along the Mid-Atlantic and New England coasts. Drives storm surges inland.",
     },
 }
