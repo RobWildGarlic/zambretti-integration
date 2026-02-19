@@ -121,6 +121,21 @@ def _wind_delta_knots(history: Any) -> float | None:
         return None
 
 
+def _mean(values: Any) -> float | None:
+    """Return the arithmetic mean of a sequence, ignoring non-numeric values."""
+    try:
+        nums: list[float] = []
+        for v in values or []:
+            fv = _safe_float(v)
+            if fv is not None:
+                nums.append(fv)
+        if not nums:
+            return None
+        return sum(nums) / len(nums)
+    except TypeError:
+        return None
+
+
 # ---------------------------------------------------------------------
 # Public output
 # ---------------------------------------------------------------------
@@ -153,6 +168,11 @@ class LowEstimate:
     low_relative_position: str  # West / East / North-South / Unknown
     low_movement: str  # Approaching / Passing / Receding / Unknown
     impact_window_status: str  # Future / Now / Passed / Unknown
+
+    # Gust risk (sailing-oriented)
+    gust_likelihood: str  # Low / Medium / High
+    gust_factor: float | None  # Expected gust multiplier relative to mean wind
+    expected_gust_kn: float | None
 
     # Human-readable explanation
     summary: str
@@ -248,6 +268,16 @@ def build_low_summary(low: LowEstimate) -> str:
             f"Wind {low.wind_trend.lower()} (Δ {sign}{low.wind_delta_kn:.1f} kn)."
         )
 
+    gust_line = ""
+    if getattr(low, "gust_likelihood", None):
+        if low.expected_gust_kn is not None:
+            gust_line = (
+                f" Gusts: {low.gust_likelihood.lower()} likelihood, "
+                f"~{low.expected_gust_kn:.0f} kn expected."
+            )
+        else:
+            gust_line = f" Gusts: {low.gust_likelihood.lower()} likelihood."
+
     # Rotation / front / anchor
     rot = ""
     if low.wind_rotation_likely and low.wind_rotation_likely not in (
@@ -265,7 +295,7 @@ def build_low_summary(low: LowEstimate) -> str:
         f"Low to {direction}, {dist}. "
         f"Outlook: {low.weather_trend}. "
         f"Impact window: {impact} ({conf}). "
-        f"{wind_line}{rot}{front}{anchor}"
+        f"{wind_line}{gust_line}{rot}{front}{anchor}"
     ).strip()
 
 
@@ -366,6 +396,59 @@ def _derive_anchoring_risk(distance_class: str, wind_trend: str) -> str:
             else "Safe"
         )
     return "Safe"
+
+
+def _derive_gust_risk(
+    *,
+    distance_class: str,
+    pressure_slope_hpa_per_hr: float | None,
+    wind_trend: str,
+    frontal_zone: bool,
+    wind_mean_kn: float | None,
+) -> tuple[str, float | None, float | None]:
+    """Estimate gust likelihood and strength using local-only heuristics.
+
+    The returned gust_factor is meant to be applied to *mean* wind (not true wind aloft).
+    If wind_mean_kn is unavailable, we still return likelihood but not an expected gust.
+    """
+    ps = pressure_slope_hpa_per_hr
+    fall_rate = 0.0 if ps is None else max(0.0, -ps)
+
+    # Likelihood
+    likely = "Low"
+    if (
+        distance_class in ("Approaching", "Near")
+        or fall_rate >= 0.15
+        or "Increased" in wind_trend
+    ):
+        likely = "Medium"
+    if (
+        frontal_zone
+        or distance_class in ("Very near", "Imminent")
+        or fall_rate >= 0.50
+        or wind_trend == "Increased a lot"
+    ):
+        likely = "High"
+
+    # Strength (gust factor)
+    if wind_mean_kn is None:
+        return likely, None, None
+
+    factor = 1.5
+    if "Increased" in wind_trend:
+        factor = 1.7
+    if fall_rate >= 0.35:
+        factor = max(factor, 1.8)
+    if frontal_zone:
+        factor = max(factor, 2.0)
+    if distance_class in ("Very near", "Imminent"):
+        factor = max(factor, 2.1)
+    if wind_trend == "Increased a lot":
+        factor = max(factor, 2.2)
+
+    # Keep within sane bounds for this heuristic.
+    factor = max(1.3, min(2.5, factor))
+    return likely, factor, wind_mean_kn * factor
 
 
 def _derive_relative_position_and_movement(
@@ -608,6 +691,17 @@ def estimate_low_properties(
     frontal_zone = _derive_frontal_zone(distance_class, pslope, wind_trend)
     anchoring_risk = _derive_anchoring_risk(distance_class, wind_trend)
 
+    wind_mean_kn = _mean(wind_speed_history_kn)
+    if wind_mean_kn is None:
+        wind_mean_kn = wspd
+    gust_likelihood, gust_factor, expected_gust_kn = _derive_gust_risk(
+        distance_class=distance_class,
+        pressure_slope_hpa_per_hr=pslope,
+        wind_trend=wind_trend,
+        frontal_zone=frontal_zone,
+        wind_mean_kn=wind_mean_kn,
+    )
+
     # Human-readable summary (used as attribute in HA)
     parts: list[str] = []
 
@@ -669,6 +763,19 @@ def estimate_low_properties(
         parts.append(wind_clause)
         parts.append(wind_outlook)
 
+    if (
+        expected_gust_kn is not None
+        and wind_mean_kn is not None
+        and gust_factor is not None
+    ):
+        parts.append(
+            "Gusts: "
+            f"{gust_likelihood.lower()} likelihood, "
+            f"expected ~{expected_gust_kn:.0f} kn (x{gust_factor:.1f} of mean)."
+        )
+    else:
+        parts.append(f"Gusts: {gust_likelihood.lower()} likelihood.")
+
     if wind_rotation_likely:
         if wind_rotation_likely not in ("Uncertain", "Unknown"):
             parts.append(f"Likely direction change: {wind_rotation_likely.lower()}.")
@@ -702,6 +809,11 @@ def estimate_low_properties(
         low_relative_position=low_relative_position,
         low_movement=low_movement,
         impact_window_status=impact_window_status,
+        gust_likelihood=gust_likelihood,
+        gust_factor=round(gust_factor, 2) if gust_factor is not None else None,
+        expected_gust_kn=round(expected_gust_kn, 1)
+        if expected_gust_kn is not None
+        else None,
         summary=summary,
     )
 
